@@ -36,11 +36,11 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
     ["Manufacturer", device.manufacturer],
     ["Model", device.model],
     ["Serial Number", device.serialNumber],
-    ["Location", device.location],
+    ["Site / Location", device.location],
     ["Status", null],
     ["Connected To", device.parent ? device.parent.name : null],
     ["Customer", device.customer ? device.customer.name : null],
-    ["Location", device.assignedLocation ? device.assignedLocation.name : null],
+    ["Customer Location", device.assignedLocation ? device.assignedLocation.name : null],
     ["Created", format(device.createdAt, "MMM d, yyyy HH:mm")],
     ["Last Updated", format(device.updatedAt, "MMM d, yyyy HH:mm")],
   ];
