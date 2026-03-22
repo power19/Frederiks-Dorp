@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { DeviceStatus, DeviceType } from "@/generated/prisma";
+import { MapPin, Loader2 } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -56,11 +57,14 @@ const deviceTypeLabels: Record<DeviceType, string> = {
 export function DeviceForm({ defaultValues, deviceId, devices = [], customers = [] }: Props) {
   const router = useRouter();
   const [error, setError] = useState("");
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState("");
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -72,6 +76,27 @@ export function DeviceForm({ defaultValues, deviceId, devices = [], customers = 
   });
 
   const isPatchPanel = watch("type") === "PATCH_PANEL";
+
+  function getGpsLocation() {
+    if (!navigator.geolocation) {
+      setGpsError("Geolocation is not supported by this browser.");
+      return;
+    }
+    setGpsLoading(true);
+    setGpsError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setValue("latitude", parseFloat(pos.coords.latitude.toFixed(6)));
+        setValue("longitude", parseFloat(pos.coords.longitude.toFixed(6)));
+        setGpsLoading(false);
+      },
+      (err) => {
+        setGpsError("Could not get location: " + err.message);
+        setGpsLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
 
   async function onSubmit(data: FormData) {
     setError("");
@@ -184,14 +209,24 @@ export function DeviceForm({ defaultValues, deviceId, devices = [], customers = 
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Latitude</label>
-          <input {...register("latitude", { valueAsNumber: true })} type="number" step="any" className={field} placeholder="e.g. 12.1234" />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Longitude</label>
-          <input {...register("longitude", { valueAsNumber: true })} type="number" step="any" className={field} placeholder="e.g. -68.9234" />
+        <div className="md:col-span-2">
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-sm font-medium text-slate-700">GPS Coordinates</label>
+            <button
+              type="button"
+              onClick={getGpsLocation}
+              disabled={gpsLoading}
+              className="flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50 transition-colors"
+            >
+              {gpsLoading ? <Loader2 size={12} className="animate-spin" /> : <MapPin size={12} />}
+              {gpsLoading ? "Getting location…" : "Use My Location"}
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <input {...register("latitude", { valueAsNumber: true })} type="number" step="any" className={field} placeholder="Latitude (e.g. 12.1234)" />
+            <input {...register("longitude", { valueAsNumber: true })} type="number" step="any" className={field} placeholder="Longitude (e.g. -68.9234)" />
+          </div>
+          {gpsError && <p className="text-red-500 text-xs mt-1">{gpsError}</p>}
         </div>
       </div>
 
