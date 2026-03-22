@@ -6,7 +6,7 @@ import {
   LayoutDashboard,
   Server,
   GitBranch,
-  Download,
+  ArrowDownUp,
   Settings,
   Network,
 } from "lucide-react";
@@ -16,7 +16,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/devices", label: "Devices", icon: Server },
   { href: "/topology", label: "Topology", icon: GitBranch },
-  { href: "/export", label: "Export", icon: Download },
+  { href: "/export", label: "Import / Export", icon: ArrowDownUp },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

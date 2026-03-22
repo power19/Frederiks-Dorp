@@ -105,6 +105,7 @@ enum DeviceType {
   P2P
   POS
   STARLINK
+  PATCH_PANEL
 }
 
 enum DeviceStatus {

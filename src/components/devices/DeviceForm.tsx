@@ -41,6 +41,7 @@ const deviceTypeLabels: Record<DeviceType, string> = {
   P2P: "Point-to-Point",
   POS: "POS System",
   STARLINK: "Starlink",
+  PATCH_PANEL: "Patch Panel",
 };
 
 export function DeviceForm({ defaultValues, deviceId, devices = [] }: Props) {
