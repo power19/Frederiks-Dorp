@@ -19,6 +19,6 @@ export async function GET() {
     },
   });
 
-  const graph = buildTopologyGraph(devices);
+  const graph = buildTopologyGraph(devices, new Map());
   return NextResponse.json(graph);
 }

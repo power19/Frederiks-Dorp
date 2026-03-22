@@ -54,21 +54,26 @@ export type DeviceNodeData = {
   location: string | null;
   notes: string | null;
   deviceId: string;
+  customerId: string | null;
+  customerName: string | null;
+  customerColor: string;
+  locationName: string | null;
 };
 
 function DeviceNode({ data }: { data: DeviceNodeData }) {
-  const color = typeColors[data.deviceType] ?? "#94a3b8";
-  const dot   = statusDot[data.status]     ?? "#94a3b8";
+  const borderColor = data.customerColor;
+  const typeColor   = typeColors[data.deviceType] ?? "#94a3b8";
+  const dot         = statusDot[data.status]      ?? "#94a3b8";
 
   return (
     <div
-      style={{ borderColor: color }}
-      className="bg-white border-2 rounded-xl shadow-lg px-4 py-3 min-w-[140px] cursor-pointer hover:shadow-xl transition-shadow"
+      style={{ borderColor }}
+      className="bg-white border-2 rounded-xl shadow-lg px-4 py-3 min-w-[150px] cursor-pointer hover:shadow-xl transition-shadow"
     >
-      <Handle type="target" position={Position.Top}    style={{ background: color }} />
+      <Handle type="target" position={Position.Top} style={{ background: borderColor }} />
 
       <div className="flex items-center gap-2 mb-1">
-        <div style={{ background: color }} className="text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+        <div style={{ background: typeColor }} className="text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
           {typeLabels[data.deviceType] ?? data.deviceType}
         </div>
         <div style={{ background: dot }} className="w-2 h-2 rounded-full" title={data.status} />
@@ -78,8 +83,13 @@ function DeviceNode({ data }: { data: DeviceNodeData }) {
       {data.ipAddress && (
         <p className="text-[11px] text-slate-400 font-mono mt-0.5">{data.ipAddress}</p>
       )}
+      {(data.customerName || data.locationName) && (
+        <p className="text-[10px] mt-1 truncate" style={{ color: borderColor }}>
+          {[data.customerName, data.locationName].filter(Boolean).join(" · ")}
+        </p>
+      )}
 
-      <Handle type="source" position={Position.Bottom} style={{ background: color }} />
+      <Handle type="source" position={Position.Bottom} style={{ background: borderColor }} />
     </div>
   );
 }
@@ -152,12 +162,14 @@ function DevicePopup({ data, onClose }: { data: DeviceNodeData; onClose: () => v
           <div><StatusBadge status={data.status} /></div>
 
           <div className="space-y-1.5 pt-1">
+            <Row label="Customer"     value={data.customerName} />
+            <Row label="Location"     value={data.locationName} />
             <Row label="IP Address"   value={data.ipAddress} />
             <Row label="MAC Address"  value={data.macAddress} />
             <Row label="Manufacturer" value={data.manufacturer} />
             <Row label="Model"        value={data.model} />
             <Row label="Serial No."   value={data.serialNumber} />
-            <Row label="Location"     value={data.location} />
+            <Row label="Site Location" value={data.location} />
           </div>
 
           {data.notes && (
@@ -206,7 +218,7 @@ export function TopologyGraph({ nodes, edges }: Props) {
       >
         <Background />
         <Controls />
-        <MiniMap nodeColor={(n) => typeColors[n.data.deviceType as DeviceType] ?? "#94a3b8"} />
+        <MiniMap nodeColor={(n) => (n.data as DeviceNodeData).customerColor ?? "#94a3b8"} />
       </ReactFlow>
 
       {selected && (

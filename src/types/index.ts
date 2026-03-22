@@ -41,7 +41,17 @@ export interface TopologyNode {
     deviceType: DeviceType;
     status: DeviceStatus;
     ipAddress: string | null;
+    macAddress: string | null;
+    manufacturer: string | null;
+    model: string | null;
+    serialNumber: string | null;
+    location: string | null;
+    notes: string | null;
     deviceId: string;
+    customerId: string | null;
+    customerName: string | null;
+    customerColor: string;
+    locationName: string | null;
   };
 }
 

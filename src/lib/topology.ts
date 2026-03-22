@@ -1,6 +1,27 @@
 import { DeviceStatus, DeviceType } from "@/generated/prisma";
 import { TopologyEdge, TopologyNode } from "@/types";
 
+// Cycle through these for customer color coding
+export const CUSTOMER_COLORS = [
+  "#3b82f6", // blue
+  "#8b5cf6", // purple
+  "#10b981", // emerald
+  "#f59e0b", // amber
+  "#ef4444", // red
+  "#06b6d4", // cyan
+  "#f97316", // orange
+  "#ec4899", // pink
+];
+
+export function getCustomerColor(
+  customerId: string | null,
+  customerIndex: Map<string, number>
+): string {
+  if (!customerId) return "#94a3b8"; // slate for unassigned
+  const idx = customerIndex.get(customerId) ?? 0;
+  return CUSTOMER_COLORS[idx % CUSTOMER_COLORS.length];
+}
+
 interface DeviceNode {
   id: string;
   name: string;
@@ -14,9 +35,16 @@ interface DeviceNode {
   location?: string | null;
   notes?: string | null;
   parentId: string | null;
+  customerId?: string | null;
+  locationId?: string | null;
+  customer?: { id: string; name: string } | null;
+  assignedLocation?: { id: string; name: string } | null;
 }
 
-export function buildTopologyGraph(devices: DeviceNode[]): {
+export function buildTopologyGraph(
+  devices: DeviceNode[],
+  customerIndex: Map<string, number>
+): {
   nodes: TopologyNode[];
   edges: TopologyEdge[];
 } {
@@ -44,9 +72,7 @@ export function buildTopologyGraph(devices: DeviceNode[]): {
       const subtreeWidth = Math.max(1, children.length) * levelWidth;
       const centerX = currentX + subtreeWidth / 2 - levelWidth / 2;
       positions.set(id, { x: centerX, y: depth * levelHeight });
-      if (children.length > 0) {
-        assignPositions(children, depth + 1, currentX);
-      }
+      if (children.length > 0) assignPositions(children, depth + 1, currentX);
       currentX += subtreeWidth;
     }
     return currentX;
@@ -80,11 +106,15 @@ export function buildTopologyGraph(devices: DeviceNode[]): {
       location: d.location ?? null,
       notes: d.notes ?? null,
       deviceId: d.id,
+      customerId: d.customerId ?? null,
+      customerName: d.customer?.name ?? null,
+      customerColor: getCustomerColor(d.customerId ?? null, customerIndex),
+      locationName: d.assignedLocation?.name ?? null,
     },
   }));
 
   const edges: TopologyEdge[] = devices
-    .filter((d) => d.parentId)
+    .filter((d) => d.parentId && nodeMap.has(d.parentId))
     .map((d) => ({
       id: `e-${d.parentId}-${d.id}`,
       source: d.parentId!,
