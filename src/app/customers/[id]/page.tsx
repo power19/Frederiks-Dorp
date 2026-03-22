@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/devices/StatusBadge";
 import { DeviceTypeBadge } from "@/components/devices/DeviceTypeBadge";
 import { DeleteCustomerButton } from "@/components/customers/DeleteCustomerButton";
 import { LocationManager } from "@/components/customers/LocationManager";
+import { CustomerContacts } from "@/components/customers/CustomerContacts";
 import { format } from "date-fns";
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -58,20 +59,13 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
               {[
                 ["Name", customer.name],
-                ["Contact Name", customer.contactName],
-                ["Email", customer.email],
-                ["Phone", customer.phone],
                 ["Address", customer.address],
                 ["Added", format(customer.createdAt, "MMM d, yyyy")],
               ].map(([label, value]) => (
                 <div key={String(label)}>
                   <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</dt>
                   <dd className="mt-0.5 text-sm text-slate-900">
-                    {label === "Email" && value ? (
-                      <a href={`mailto:${value}`} className="text-blue-600 hover:underline">{value}</a>
-                    ) : (
-                      <span className={!value ? "text-slate-400" : ""}>{value ?? "—"}</span>
-                    )}
+                    <span className={!value ? "text-slate-400" : ""}>{value ?? "—"}</span>
                   </dd>
                 </div>
               ))}
@@ -84,6 +78,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               <p className="text-sm text-slate-700 whitespace-pre-wrap">{customer.notes}</p>
             </div>
           )}
+
+          {/* Contacts */}
+          <CustomerContacts customerId={customer.id} />
 
           {/* Locations */}
           <LocationManager customerId={customer.id} />

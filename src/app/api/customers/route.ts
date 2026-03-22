@@ -6,9 +6,6 @@ import { z } from "zod";
 
 const customerSchema = z.object({
   name: z.string().min(1),
-  contactName: z.string().optional().nullable(),
-  email: z.string().email().optional().nullable(),
-  phone: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
@@ -24,8 +21,7 @@ export async function GET(req: NextRequest) {
     where: search ? {
       OR: [
         { name: { contains: search } },
-        { contactName: { contains: search } },
-        { email: { contains: search } },
+        { contacts: { some: { name: { contains: search } } } },
       ],
     } : undefined,
     include: { _count: { select: { devices: true } } },

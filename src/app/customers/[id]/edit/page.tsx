@@ -15,12 +15,9 @@ export default function EditCustomerPage() {
   const [saving, setSaving] = useState(false);
   const [defaultValues, setDefaultValues] = useState<{
     name: string;
-    contactName: string;
-    email: string;
-    phone: string;
     address: string;
     notes: string;
-  }>({ name: "", contactName: "", email: "", phone: "", address: "", notes: "" });
+  }>({ name: "", address: "", notes: "" });
 
   useEffect(() => {
     fetch(`/api/customers/${id}`)
@@ -28,9 +25,6 @@ export default function EditCustomerPage() {
       .then(data => {
         setDefaultValues({
           name: data.name ?? "",
-          contactName: data.contactName ?? "",
-          email: data.email ?? "",
-          phone: data.phone ?? "",
           address: data.address ?? "",
           notes: data.notes ?? "",
         });
@@ -48,9 +42,6 @@ export default function EditCustomerPage() {
     const form = e.currentTarget;
     const data = {
       name: (form.elements.namedItem("name") as HTMLInputElement).value,
-      contactName: (form.elements.namedItem("contactName") as HTMLInputElement).value || null,
-      email: (form.elements.namedItem("email") as HTMLInputElement).value || null,
-      phone: (form.elements.namedItem("phone") as HTMLInputElement).value || null,
       address: (form.elements.namedItem("address") as HTMLInputElement).value || null,
       notes: (form.elements.namedItem("notes") as HTMLTextAreaElement).value || null,
     };
@@ -105,22 +96,7 @@ export default function EditCustomerPage() {
               <input name="name" required defaultValue={defaultValues.name} className={field} placeholder="e.g. Acme Corp" />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Contact Name</label>
-              <input name="contactName" defaultValue={defaultValues.contactName} className={field} placeholder="e.g. John Smith" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-              <input name="email" type="email" defaultValue={defaultValues.email} className={field} placeholder="contact@example.com" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-              <input name="phone" defaultValue={defaultValues.phone} className={field} placeholder="+1 555 000 0000" />
-            </div>
-
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
               <input name="address" defaultValue={defaultValues.address} className={field} placeholder="123 Main St, City" />
             </div>

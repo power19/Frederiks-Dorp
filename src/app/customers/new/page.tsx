@@ -20,9 +20,6 @@ export default function NewCustomerPage() {
     const form = e.currentTarget;
     const data = {
       name: (form.elements.namedItem("name") as HTMLInputElement).value,
-      contactName: (form.elements.namedItem("contactName") as HTMLInputElement).value || null,
-      email: (form.elements.namedItem("email") as HTMLInputElement).value || null,
-      phone: (form.elements.namedItem("phone") as HTMLInputElement).value || null,
       address: (form.elements.namedItem("address") as HTMLInputElement).value || null,
       notes: (form.elements.namedItem("notes") as HTMLTextAreaElement).value || null,
     };
@@ -70,26 +67,14 @@ export default function NewCustomerPage() {
               <input name="name" required className={field} placeholder="e.g. Acme Corp" />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Contact Name</label>
-              <input name="contactName" className={field} placeholder="e.g. John Smith" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-              <input name="email" type="email" className={field} placeholder="contact@example.com" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-              <input name="phone" className={field} placeholder="+1 555 000 0000" />
-            </div>
-
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Address</label>
               <input name="address" className={field} placeholder="123 Main St, City" />
             </div>
           </div>
+          <p className="text-xs text-slate-500 -mt-2">
+            You can add contacts (name, email, phone) after creating the customer.
+          </p>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
