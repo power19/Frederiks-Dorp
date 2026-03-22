@@ -32,7 +32,7 @@ interface Props {
 }
 
 export function TopologyClient({ devices, customers }: Props) {
-  const [selectedCustomerId, setSelectedCustomerId] = useState("");
+  const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id ?? "");
   const [selectedLocationId, setSelectedLocationId] = useState("");
 
   // Build a stable customer → color index
@@ -75,17 +75,6 @@ export function TopologyClient({ devices, customers }: Props) {
   const selectCls =
     "border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
 
-  const COLORS = [
-    "#3b82f6",
-    "#8b5cf6",
-    "#10b981",
-    "#f59e0b",
-    "#ef4444",
-    "#06b6d4",
-    "#f97316",
-    "#ec4899",
-  ];
-
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - 57px)" }}>
       {/* Header */}
@@ -93,36 +82,15 @@ export function TopologyClient({ devices, customers }: Props) {
         <div>
           <h2 className="text-xl font-bold text-slate-900">Network Topology</h2>
           <p className="text-slate-500 text-sm">
-            {filtered.length} device{filtered.length !== 1 ? "s" : ""}
-            {selectedCustomerId
-              ? ` · ${customers.find((c) => c.id === selectedCustomerId)?.name}`
-              : " · All customers"}
+            {customers.find((c) => c.id === selectedCustomerId)?.name ?? ""}
             {selectedLocationId
               ? ` · ${locationOptions.find((l) => l.id === selectedLocationId)?.name}`
               : ""}
+            {" · "}{filtered.length} device{filtered.length !== 1 ? "s" : ""}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Customer legend dots */}
-          {!selectedCustomerId && customers.length > 0 && (
-            <div className="hidden sm:flex items-center gap-2 mr-2">
-              {customers.slice(0, 6).map((c, i) => (
-                <button
-                  key={c.id}
-                  onClick={() => setSelectedCustomerId(c.id)}
-                  className="flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 transition-colors"
-                >
-                  <span
-                    style={{ background: COLORS[i % COLORS.length] }}
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                  />
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          )}
-
           <select
             value={selectedCustomerId}
             onChange={(e) => {
@@ -131,15 +99,12 @@ export function TopologyClient({ devices, customers }: Props) {
             }}
             className={selectCls}
           >
-            <option value="">All Customers</option>
             {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
 
-          {selectedCustomerId && locationOptions.length > 0 && (
+          {locationOptions.length > 0 && (
             <select
               value={selectedLocationId}
               onChange={(e) => setSelectedLocationId(e.target.value)}
@@ -147,22 +112,17 @@ export function TopologyClient({ devices, customers }: Props) {
             >
               <option value="">All Locations</option>
               {locationOptions.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
+                <option key={l.id} value={l.id}>{l.name}</option>
               ))}
             </select>
           )}
 
-          {(selectedCustomerId || selectedLocationId) && (
+          {selectedLocationId && (
             <button
-              onClick={() => {
-                setSelectedCustomerId("");
-                setSelectedLocationId("");
-              }}
+              onClick={() => setSelectedLocationId("")}
               className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
             >
-              Clear
+              All Locations
             </button>
           )}
         </div>
