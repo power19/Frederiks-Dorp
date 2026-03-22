@@ -7,6 +7,12 @@ interface DeviceNode {
   type: DeviceType;
   status: DeviceStatus;
   ipAddress: string | null;
+  macAddress?: string | null;
+  manufacturer?: string | null;
+  model?: string | null;
+  serialNumber?: string | null;
+  location?: string | null;
+  notes?: string | null;
   parentId: string | null;
 }
 
@@ -26,9 +32,10 @@ export function buildTopologyGraph(devices: DeviceNode[]): {
   });
 
   // Assign positions using BFS tree layout
-  const positions = new Map<string, { x: number; y: number }>();
   const levelWidth = 220;
   const levelHeight = 160;
+
+  const positions = new Map<string, { x: number; y: number }>();
 
   function assignPositions(ids: string[], depth: number, xOffset: number): number {
     let currentX = xOffset;
@@ -48,7 +55,7 @@ export function buildTopologyGraph(devices: DeviceNode[]): {
   const roots = childrenMap.get(null) ?? [];
   assignPositions(roots, 0, 0);
 
-  // Devices with no position yet (orphaned somehow)
+  // Devices with no position yet (orphaned)
   let orphanX = 0;
   devices.forEach((d) => {
     if (!positions.has(d.id)) {
@@ -65,7 +72,13 @@ export function buildTopologyGraph(devices: DeviceNode[]): {
       label: d.name,
       deviceType: d.type,
       status: d.status,
-      ipAddress: d.ipAddress,
+      ipAddress: d.ipAddress ?? null,
+      macAddress: d.macAddress ?? null,
+      manufacturer: d.manufacturer ?? null,
+      model: d.model ?? null,
+      serialNumber: d.serialNumber ?? null,
+      location: d.location ?? null,
+      notes: d.notes ?? null,
       deviceId: d.id,
     },
   }));
