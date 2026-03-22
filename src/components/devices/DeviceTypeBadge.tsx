@@ -8,6 +8,7 @@ const config: Record<DeviceType, { label: string; className: string }> = {
   P2P: { label: "P2P", className: "bg-orange-100 text-orange-700" },
   POS: { label: "POS", className: "bg-pink-100 text-pink-700" },
   STARLINK: { label: "Starlink", className: "bg-indigo-100 text-indigo-700" },
+  PATCH_PANEL: { label: "Patch Panel", className: "bg-teal-100 text-teal-700" },
 };
 
 export function DeviceTypeBadge({ type }: { type: DeviceType }) {

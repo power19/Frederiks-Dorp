@@ -23,6 +23,7 @@ const typeColors: Record<DeviceType, string> = {
   P2P:          "#f97316",
   POS:          "#ec4899",
   STARLINK:     "#6366f1",
+  PATCH_PANEL:  "#0d9488",
 };
 
 const typeLabels: Record<DeviceType, string> = {
@@ -32,6 +33,7 @@ const typeLabels: Record<DeviceType, string> = {
   P2P:          "P2P",
   POS:          "POS",
   STARLINK:     "Starlink",
+  PATCH_PANEL:  "Patch Panel",
 };
 
 const statusDot: Record<DeviceStatus, string> = {

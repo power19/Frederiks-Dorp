@@ -20,6 +20,7 @@ const DEVICE_TYPES = [
   { value: "P2P", label: "Point-to-Point" },
   { value: "POS", label: "POS System" },
   { value: "STARLINK", label: "Starlink" },
+  { value: "PATCH_PANEL", label: "Patch Panel" },
 ];
 
 const STATUSES = [
@@ -54,6 +55,7 @@ const CSV_TEMPLATE_ROWS = [
   "P2P-Site2,P2P,10.0.0.1,,Ubiquiti,LiteBeam 5AC,,Main Site,ACTIVE,Link to Site 2",
   "POS-Terminal-01,POS,192.168.1.50,,Verifone,VX520,,Front Desk,ACTIVE,",
   "Starlink-Main,STARLINK,192.168.100.1,,SpaceX,Standard,,Roof,ACTIVE,Primary uplink",
+  "PP-Main-01,PATCH_PANEL,,,Generic,24-Port,,Server Room,ACTIVE,Main distribution patch panel",
 ];
 const CSV_TEMPLATE = [CSV_TEMPLATE_HEADERS, ...CSV_TEMPLATE_ROWS].join("\n");
 

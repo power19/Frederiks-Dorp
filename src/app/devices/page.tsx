@@ -71,6 +71,7 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
           <option value="P2P">Point-to-Point</option>
           <option value="POS">POS System</option>
           <option value="STARLINK">Starlink</option>
+          <option value="PATCH_PANEL">Patch Panel</option>
         </select>
         <select
           name="status"
