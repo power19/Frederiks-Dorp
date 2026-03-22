@@ -15,6 +15,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DeviceStatus, DeviceType } from "@/generated/prisma";
 import { X, ExternalLink, Wifi, WifiOff, Wrench } from "lucide-react";
+import { PatchPort } from "@/lib/topology";
 
 const typeColors: Record<DeviceType, string> = {
   SWITCH:       "#3b82f6",
@@ -58,6 +59,7 @@ export type DeviceNodeData = {
   customerName: string | null;
   customerColor: string;
   locationName: string | null;
+  ports: PatchPort[];
 };
 
 function DeviceNode({ data }: { data: DeviceNodeData }) {
@@ -94,7 +96,143 @@ function DeviceNode({ data }: { data: DeviceNodeData }) {
   );
 }
 
-const nodeTypes: NodeTypes = { deviceNode: DeviceNode };
+// ── Patch Panel Node ────────────────────────────────────────────────────────
+
+const CABLE_COLORS: Record<string, string> = {
+  "Cat5e": "#64748b",
+  "Cat6":  "#3b82f6",
+  "Cat6A": "#6366f1",
+  "Cat7":  "#8b5cf6",
+  "Fibre": "#f97316",
+  "Coax":  "#eab308",
+  "Other": "#94a3b8",
+};
+
+function PatchPanelNode({ data }: { data: DeviceNodeData }) {
+  const [hoveredPort, setHoveredPort] = useState<PatchPort | null>(null);
+  const borderColor = data.customerColor;
+  const dot = statusDot[data.status] ?? "#94a3b8";
+  const ports = data.ports ?? [];
+  const COLS = 12;
+  const usedPorts = ports.filter(p => p.label || p.connectedTo);
+
+  return (
+    <div
+      style={{ borderColor, minWidth: Math.min(ports.length, COLS) * 36 + 24 }}
+      className="bg-white border-2 rounded-xl shadow-lg overflow-visible cursor-default"
+    >
+      <Handle type="target" position={Position.Top} style={{ background: borderColor }} />
+
+      {/* Header */}
+      <div style={{ background: borderColor }} className="px-3 py-2 rounded-t-[10px] flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-white text-[10px] font-bold uppercase tracking-wider">Patch Panel</span>
+          <div style={{ background: dot }} className="w-2 h-2 rounded-full" title={data.status} />
+        </div>
+        <span className="text-white/80 text-[10px]">{usedPorts.length}/{ports.length} ports</span>
+      </div>
+
+      {/* Name + location */}
+      <div className="px-3 pt-2 pb-1">
+        <p className="text-sm font-bold text-slate-800">{data.label}</p>
+        {(data.customerName || data.locationName) && (
+          <p className="text-[10px] truncate" style={{ color: borderColor }}>
+            {[data.customerName, data.locationName].filter(Boolean).join(" · ")}
+          </p>
+        )}
+      </div>
+
+      {/* Port grid */}
+      {ports.length > 0 ? (
+        <div className="px-3 pb-3 pt-1">
+          <div
+            className="grid gap-1"
+            style={{ gridTemplateColumns: `repeat(${Math.min(ports.length, COLS)}, 32px)` }}
+          >
+            {ports.map((port) => {
+              const hasData = !!(port.label || port.connectedTo);
+              const cableColor = port.cableType ? (CABLE_COLORS[port.cableType] ?? "#94a3b8") : null;
+              return (
+                <div
+                  key={port.id}
+                  className="relative"
+                  onMouseEnter={() => setHoveredPort(port)}
+                  onMouseLeave={() => setHoveredPort(null)}
+                >
+                  <div
+                    className="w-8 h-8 rounded flex flex-col items-center justify-center text-[9px] font-bold cursor-pointer transition-all border"
+                    style={{
+                      background: hasData ? (cableColor ?? "#0d9488") + "20" : "#f8fafc",
+                      borderColor: hasData ? (cableColor ?? "#0d9488") : "#e2e8f0",
+                      color: hasData ? (cableColor ?? "#0d9488") : "#94a3b8",
+                    }}
+                  >
+                    <span>{port.portNumber}</span>
+                    {hasData && (
+                      <div
+                        className="w-2 h-1 rounded-full mt-0.5"
+                        style={{ background: cableColor ?? "#0d9488" }}
+                      />
+                    )}
+                  </div>
+
+                  {/* Tooltip */}
+                  {hoveredPort?.id === port.id && (
+                    <div className="absolute z-50 bottom-full left-1/2 -translate-x-1/2 mb-2 w-44 bg-slate-900 text-white rounded-lg shadow-xl p-2.5 text-[11px] pointer-events-none">
+                      <p className="font-bold text-xs mb-1">Port {port.portNumber}</p>
+                      {port.label && (
+                        <p className="text-slate-300"><span className="text-slate-500">Label:</span> {port.label}</p>
+                      )}
+                      {port.connectedTo && (
+                        <p className="text-slate-300"><span className="text-slate-500">→</span> {port.connectedTo}</p>
+                      )}
+                      {port.cableType && (
+                        <p className="mt-1">
+                          <span
+                            className="px-1.5 py-0.5 rounded text-white text-[10px] font-medium"
+                            style={{ background: CABLE_COLORS[port.cableType] ?? "#94a3b8" }}
+                          >
+                            {port.cableType}
+                          </span>
+                        </p>
+                      )}
+                      {port.notes && (
+                        <p className="text-slate-400 mt-1 text-[10px] italic">{port.notes}</p>
+                      )}
+                      {!port.label && !port.connectedTo && (
+                        <p className="text-slate-500 italic">Empty port</p>
+                      )}
+                      {/* Tooltip arrow */}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Cable legend */}
+          {ports.some(p => p.cableType) && (
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-2">
+              {Array.from(new Set(ports.filter(p => p.cableType).map(p => p.cableType!))).map(ct => (
+                <span key={ct} className="flex items-center gap-1 text-[9px] text-slate-500">
+                  <span className="w-2 h-2 rounded-full" style={{ background: CABLE_COLORS[ct] ?? "#94a3b8" }} />
+                  {ct}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="px-3 pb-3 text-[11px] text-slate-400 italic">No ports documented</p>
+      )}
+
+      <Handle type="source" position={Position.Bottom} style={{ background: borderColor }} />
+    </div>
+  );
+}
+
+const nodeTypes: NodeTypes = { deviceNode: DeviceNode, patchPanelNode: PatchPanelNode };
 
 // ── Status badge ───────────────────────────────────────────────────────────
 

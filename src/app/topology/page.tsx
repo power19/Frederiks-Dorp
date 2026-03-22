@@ -16,6 +16,13 @@ export default async function TopologyPage() {
         locationId: true,
         customer: { select: { id: true, name: true } },
         assignedLocation: { select: { id: true, name: true } },
+        ports: {
+          orderBy: { portNumber: "asc" },
+          select: {
+            id: true, portNumber: true, label: true,
+            connectedTo: true, cableType: true, notes: true,
+          },
+        },
       },
       orderBy: { name: "asc" },
     }),

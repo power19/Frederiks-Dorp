@@ -22,6 +22,15 @@ export function getCustomerColor(
   return CUSTOMER_COLORS[idx % CUSTOMER_COLORS.length];
 }
 
+export interface PatchPort {
+  id: string;
+  portNumber: number;
+  label: string | null;
+  connectedTo: string | null;
+  cableType: string | null;
+  notes: string | null;
+}
+
 interface DeviceNode {
   id: string;
   name: string;
@@ -39,6 +48,7 @@ interface DeviceNode {
   locationId?: string | null;
   customer?: { id: string; name: string } | null;
   assignedLocation?: { id: string; name: string } | null;
+  ports?: PatchPort[];
 }
 
 export function buildTopologyGraph(
@@ -92,7 +102,7 @@ export function buildTopologyGraph(
 
   const nodes: TopologyNode[] = devices.map((d) => ({
     id: d.id,
-    type: "deviceNode",
+    type: d.type === "PATCH_PANEL" ? "patchPanelNode" : "deviceNode",
     position: positions.get(d.id)!,
     data: {
       label: d.name,
@@ -110,6 +120,7 @@ export function buildTopologyGraph(
       customerName: d.customer?.name ?? null,
       customerColor: getCustomerColor(d.customerId ?? null, customerIndex),
       locationName: d.assignedLocation?.name ?? null,
+      ports: d.ports ?? [],
     },
   }));
 

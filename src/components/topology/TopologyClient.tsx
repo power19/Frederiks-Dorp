@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { buildTopologyGraph } from "@/lib/topology";
+import { buildTopologyGraph, PatchPort } from "@/lib/topology";
 import { TopologyGraph } from "./TopologyGraph";
 import { DeviceType, DeviceStatus } from "@/generated/prisma";
 
@@ -22,6 +22,7 @@ type DeviceRaw = {
   locationId: string | null;
   customer: { id: string; name: string } | null;
   assignedLocation: { id: string; name: string } | null;
+  ports: PatchPort[];
 };
 
 type Customer = { id: string; name: string };
