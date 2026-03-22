@@ -9,12 +9,14 @@ import {
   ArrowDownUp,
   Settings,
   Network,
+  Building2,
 } from "lucide-react";
 import { clsx } from "clsx";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/devices", label: "Devices", icon: Server },
+  { href: "/customers", label: "Customers", icon: Building2 },
   { href: "/topology", label: "Topology", icon: GitBranch },
   { href: "/export", label: "Import / Export", icon: ArrowDownUp },
   { href: "/settings", label: "Settings", icon: Settings },

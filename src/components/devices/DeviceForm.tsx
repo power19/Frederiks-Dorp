@@ -19,6 +19,9 @@ const schema = z.object({
   status: z.nativeEnum(DeviceStatus),
   notes: z.string().optional(),
   parentId: z.string().optional(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+  customerId: z.string().optional().nullable(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -28,10 +31,16 @@ interface Device {
   name: string;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+}
+
 interface Props {
   defaultValues?: Partial<FormData>;
   deviceId?: string;
   devices?: Device[];
+  customers?: Customer[];
 }
 
 const deviceTypeLabels: Record<DeviceType, string> = {
@@ -44,13 +53,14 @@ const deviceTypeLabels: Record<DeviceType, string> = {
   PATCH_PANEL: "Patch Panel",
 };
 
-export function DeviceForm({ defaultValues, deviceId, devices = [] }: Props) {
+export function DeviceForm({ defaultValues, deviceId, devices = [], customers = [] }: Props) {
   const router = useRouter();
   const [error, setError] = useState("");
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -60,6 +70,8 @@ export function DeviceForm({ defaultValues, deviceId, devices = [] }: Props) {
       ...defaultValues,
     },
   });
+
+  const isPatchPanel = watch("type") === "PATCH_PANEL";
 
   async function onSubmit(data: FormData) {
     setError("");
@@ -109,30 +121,34 @@ export function DeviceForm({ defaultValues, deviceId, devices = [] }: Props) {
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">IP Address</label>
-          <input {...register("ipAddress")} className={field} placeholder="192.168.1.1" />
-        </div>
+        {!isPatchPanel && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">IP Address</label>
+              <input {...register("ipAddress")} className={field} placeholder="192.168.1.1" />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">MAC Address</label>
-          <input {...register("macAddress")} className={field} placeholder="AA:BB:CC:DD:EE:FF" />
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">MAC Address</label>
+              <input {...register("macAddress")} className={field} placeholder="AA:BB:CC:DD:EE:FF" />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Manufacturer</label>
-          <input {...register("manufacturer")} className={field} placeholder="e.g. Ubiquiti" />
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Manufacturer</label>
+              <input {...register("manufacturer")} className={field} placeholder="e.g. Ubiquiti" />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Model</label>
-          <input {...register("model")} className={field} placeholder="e.g. US-24-Pro" />
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Model</label>
+              <input {...register("model")} className={field} placeholder="e.g. US-24-Pro" />
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Serial Number</label>
-          <input {...register("serialNumber")} className={field} placeholder="SN-XXXXXXXX" />
-        </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Serial Number</label>
+              <input {...register("serialNumber")} className={field} placeholder="SN-XXXXXXXX" />
+            </div>
+          </>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Location / Site</label>
@@ -156,6 +172,26 @@ export function DeviceForm({ defaultValues, deviceId, devices = [] }: Props) {
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Customer</label>
+          <select {...register("customerId")} className={field}>
+            <option value="">— None —</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Latitude</label>
+          <input {...register("latitude", { valueAsNumber: true })} type="number" step="any" className={field} placeholder="e.g. 12.1234" />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Longitude</label>
+          <input {...register("longitude", { valueAsNumber: true })} type="number" step="any" className={field} placeholder="e.g. -68.9234" />
         </div>
       </div>
 

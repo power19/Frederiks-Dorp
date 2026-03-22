@@ -17,6 +17,9 @@ const createSchema = z.object({
   status: z.nativeEnum(DeviceStatus).optional(),
   notes: z.string().optional().nullable(),
   parentId: z.string().optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+  customerId: z.string().optional().nullable(),
 });
 
 export async function GET(req: NextRequest) {
@@ -28,6 +31,7 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status") as DeviceStatus | null;
   const location = searchParams.get("location");
   const search = searchParams.get("search");
+  const customerId = searchParams.get("customerId");
   const page = parseInt(searchParams.get("page") ?? "1");
   const limit = parseInt(searchParams.get("limit") ?? "50");
 
@@ -35,6 +39,7 @@ export async function GET(req: NextRequest) {
     ...(type && { type }),
     ...(status && { status }),
     ...(location && { location: { contains: location } }),
+    ...(customerId && { customerId }),
     ...(search && {
       OR: [
         { name: { contains: search } },
@@ -50,7 +55,10 @@ export async function GET(req: NextRequest) {
   const [devices, total] = await Promise.all([
     prisma.device.findMany({
       where,
-      include: { parent: { select: { id: true, name: true } } },
+      include: {
+        parent: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true } },
+      },
       orderBy: { name: "asc" },
       skip: (page - 1) * limit,
       take: limit,

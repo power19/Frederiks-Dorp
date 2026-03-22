@@ -17,6 +17,9 @@ const updateSchema = z.object({
   status: z.nativeEnum(DeviceStatus).optional(),
   notes: z.string().optional().nullable(),
   parentId: z.string().optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
+  customerId: z.string().optional().nullable(),
 });
 
 export async function GET(
@@ -34,6 +37,8 @@ export async function GET(
       parent: { select: { id: true, name: true } },
       children: { select: { id: true, name: true, type: true, status: true } },
       changelog: { orderBy: { createdAt: "desc" }, take: 50 },
+      customer: { select: { id: true, name: true } },
+      ports: { orderBy: { portNumber: "asc" } },
     },
   });
 

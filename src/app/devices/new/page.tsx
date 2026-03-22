@@ -7,10 +7,16 @@ import { ChevronLeft } from "lucide-react";
 export default async function NewDevicePage() {
   await requireAuth();
 
-  const allDevices = await prisma.device.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  const [allDevices, allCustomers] = await Promise.all([
+    prisma.device.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.customer.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="p-6 max-w-3xl">
@@ -23,7 +29,7 @@ export default async function NewDevicePage() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <DeviceForm devices={allDevices} />
+        <DeviceForm devices={allDevices} customers={allCustomers} />
       </div>
     </div>
   );

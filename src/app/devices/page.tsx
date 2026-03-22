@@ -10,30 +10,38 @@ interface SearchParams {
   type?: string;
   status?: string;
   search?: string;
+  customerId?: string;
 }
 
 export default async function DevicesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   await requireAuth();
   const sp = await searchParams;
 
-  const devices = await prisma.device.findMany({
-    where: {
-      ...(sp.type && { type: sp.type as DeviceType }),
-      ...(sp.status && { status: sp.status as DeviceStatus }),
-      ...(sp.search && {
-        OR: [
-          { name: { contains: sp.search } },
-          { ipAddress: { contains: sp.search } },
-          { location: { contains: sp.search } },
-          { manufacturer: { contains: sp.search } },
-          { model: { contains: sp.search } },
-          { serialNumber: { contains: sp.search } },
-        ],
-      }),
-    },
-    include: { parent: { select: { id: true, name: true } } },
-    orderBy: { name: "asc" },
-  });
+  const [devices, customers] = await Promise.all([
+    prisma.device.findMany({
+      where: {
+        ...(sp.type && { type: sp.type as DeviceType }),
+        ...(sp.status && { status: sp.status as DeviceStatus }),
+        ...(sp.customerId && { customerId: sp.customerId }),
+        ...(sp.search && {
+          OR: [
+            { name: { contains: sp.search } },
+            { ipAddress: { contains: sp.search } },
+            { location: { contains: sp.search } },
+            { manufacturer: { contains: sp.search } },
+            { model: { contains: sp.search } },
+            { serialNumber: { contains: sp.search } },
+          ],
+        }),
+      },
+      include: {
+        parent: { select: { id: true, name: true } },
+        customer: { select: { id: true, name: true } },
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.customer.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+  ]);
 
   return (
     <div className="p-6 space-y-5">
@@ -83,13 +91,23 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
           <option value="INACTIVE">Inactive</option>
           <option value="MAINTENANCE">Maintenance</option>
         </select>
+        <select
+          name="customerId"
+          defaultValue={sp.customerId ?? ""}
+          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">All Customers</option>
+          {customers.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
         <button
           type="submit"
           className="bg-slate-800 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-slate-700 transition-colors"
         >
           Filter
         </button>
-        {(sp.type || sp.status || sp.search) && (
+        {(sp.type || sp.status || sp.search || sp.customerId) && (
           <Link href="/devices" className="text-slate-500 hover:text-slate-700 text-sm py-1.5">
             Clear
           </Link>
@@ -116,6 +134,7 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Location</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Status</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Connected To</th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Customer</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600"></th>
                 </tr>
               </thead>
@@ -141,6 +160,13 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
                       {device.parent ? (
                         <Link href={`/devices/${device.parent.id}`} className="hover:text-blue-600">
                           {device.parent.name}
+                        </Link>
+                      ) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">
+                      {device.customer ? (
+                        <Link href={`/customers/${device.customer.id}`} className="hover:text-blue-600">
+                          {device.customer.name}
                         </Link>
                       ) : "—"}
                     </td>

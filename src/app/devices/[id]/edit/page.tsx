@@ -9,10 +9,14 @@ export default async function EditDevicePage({ params }: { params: Promise<{ id:
   await requireAuth();
   const { id } = await params;
 
-  const [device, allDevices] = await Promise.all([
+  const [device, allDevices, allCustomers] = await Promise.all([
     prisma.device.findUnique({ where: { id } }),
     prisma.device.findMany({
       where: { id: { not: id } },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.customer.findMany({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
@@ -34,6 +38,7 @@ export default async function EditDevicePage({ params }: { params: Promise<{ id:
         <DeviceForm
           deviceId={id}
           devices={allDevices}
+          customers={allCustomers}
           defaultValues={{
             name: device.name,
             type: device.type,
@@ -46,6 +51,9 @@ export default async function EditDevicePage({ params }: { params: Promise<{ id:
             status: device.status,
             notes: device.notes ?? undefined,
             parentId: device.parentId ?? undefined,
+            latitude: device.latitude ?? undefined,
+            longitude: device.longitude ?? undefined,
+            customerId: device.customerId ?? undefined,
           }}
         />
       </div>

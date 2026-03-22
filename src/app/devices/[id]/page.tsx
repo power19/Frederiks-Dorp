@@ -2,12 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/requireAuth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Edit2 } from "lucide-react";
+import { ChevronLeft, Edit2, MapPin } from "lucide-react";
 import { StatusBadge } from "@/components/devices/StatusBadge";
 import { DeviceTypeBadge } from "@/components/devices/DeviceTypeBadge";
 import { PingButton } from "@/components/devices/PingButton";
 import { ChangelogList } from "@/components/devices/ChangelogList";
 import { DeleteDeviceButton } from "@/components/devices/DeleteDeviceButton";
+import { PatchPanelPorts } from "@/components/devices/PatchPanelPorts";
 import { format } from "date-fns";
 
 export default async function DeviceDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +21,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
       parent: { select: { id: true, name: true } },
       children: { select: { id: true, name: true, type: true, status: true } },
       changelog: { orderBy: { createdAt: "desc" }, take: 50 },
+      customer: { select: { id: true, name: true } },
     },
   });
 
@@ -36,6 +38,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
     ["Location", device.location],
     ["Status", null],
     ["Connected To", device.parent ? device.parent.name : null],
+    ["Customer", device.customer ? device.customer.name : null],
     ["Created", format(device.createdAt, "MMM d, yyyy HH:mm")],
     ["Last Updated", format(device.updatedAt, "MMM d, yyyy HH:mm")],
   ];
@@ -83,6 +86,10 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
                       <Link href={`/devices/${device.parent.id}`} className="text-blue-600 hover:underline not-italic font-sans">
                         {device.parent.name}
                       </Link>
+                    ) : label === "Customer" && device.customer ? (
+                      <Link href={`/customers/${device.customer.id}`} className="text-blue-600 hover:underline not-italic font-sans">
+                        {device.customer.name}
+                      </Link>
                     ) : (
                       <span className={!value ? "text-slate-400 font-sans not-italic" : ""}>{value ?? "—"}</span>
                     )}
@@ -96,6 +103,23 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
             <div className="bg-white rounded-xl border border-slate-200 p-5">
               <h3 className="font-semibold text-slate-800 mb-2">Notes</h3>
               <p className="text-sm text-slate-700 whitespace-pre-wrap">{device.notes}</p>
+            </div>
+          )}
+
+          {(device.latitude != null && device.longitude != null) && (
+            <div className="bg-white rounded-xl border border-slate-200 p-5">
+              <h3 className="font-semibold text-slate-800 mb-2 flex items-center gap-2">
+                <MapPin size={16} className="text-slate-500" /> GPS Coordinates
+              </h3>
+              <p className="text-sm font-mono text-slate-700">{device.latitude}, {device.longitude}</p>
+              <a
+                href={`https://maps.google.com/?q=${device.latitude},${device.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-2 text-sm text-blue-600 hover:underline"
+              >
+                Open in Google Maps →
+              </a>
             </div>
           )}
 
@@ -118,6 +142,10 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
                 ))}
               </div>
             </div>
+          )}
+
+          {device.type === "PATCH_PANEL" && (
+            <PatchPanelPorts deviceId={device.id} />
           )}
         </div>
 
