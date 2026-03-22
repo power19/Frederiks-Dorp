@@ -123,8 +123,12 @@ export function DeviceForm({ defaultValues, deviceId, devices = [], customers = 
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      setError(err.error?.message ?? "Something went wrong");
+      try {
+        const err = await res.json();
+        setError(err.error?.message ?? err.error ?? "Something went wrong");
+      } catch {
+        setError(`Server error (${res.status}) — please try again`);
+      }
       return;
     }
 

@@ -16,11 +16,11 @@ const createSchema = z.object({
   location: z.string().optional().nullable(),
   status: z.nativeEnum(DeviceStatus).optional(),
   notes: z.string().optional().nullable(),
-  parentId: z.string().optional().nullable(),
+  parentId: z.string().optional().nullable().transform(v => v || null),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
-  customerId: z.string().optional().nullable(),
-  locationId: z.string().optional().nullable(),
+  customerId: z.string().optional().nullable().transform(v => v || null),
+  locationId: z.string().optional().nullable().transform(v => v || null),
 });
 
 export async function GET(req: NextRequest) {
