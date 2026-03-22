@@ -20,6 +20,7 @@ const updateSchema = z.object({
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
   customerId: z.string().optional().nullable(),
+  locationId: z.string().optional().nullable(),
 });
 
 export async function GET(
@@ -38,6 +39,7 @@ export async function GET(
       children: { select: { id: true, name: true, type: true, status: true } },
       changelog: { orderBy: { createdAt: "desc" }, take: 50 },
       customer: { select: { id: true, name: true } },
+      assignedLocation: { select: { id: true, name: true, customerId: true } },
       ports: { orderBy: { portNumber: "asc" } },
     },
   });

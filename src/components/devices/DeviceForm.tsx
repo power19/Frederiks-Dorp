@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DeviceStatus, DeviceType } from "@/generated/prisma";
 import { MapPin, Loader2 } from "lucide-react";
 
@@ -23,6 +23,7 @@ const schema = z.object({
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
   customerId: z.string().optional().nullable(),
+  locationId: z.string().optional().nullable(),
 });
 
 type FormData = z.infer<typeof schema>;
@@ -42,6 +43,7 @@ interface Props {
   deviceId?: string;
   devices?: Device[];
   customers?: Customer[];
+  lockedCustomerId?: string;
 }
 
 const deviceTypeLabels: Record<DeviceType, string> = {
@@ -54,11 +56,12 @@ const deviceTypeLabels: Record<DeviceType, string> = {
   PATCH_PANEL: "Patch Panel",
 };
 
-export function DeviceForm({ defaultValues, deviceId, devices = [], customers = [] }: Props) {
+export function DeviceForm({ defaultValues, deviceId, devices = [], customers = [], lockedCustomerId = "" }: Props) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState("");
+  const [locations, setLocations] = useState<{ id: string; name: string }[]>([]);
 
   const {
     register,
@@ -76,6 +79,16 @@ export function DeviceForm({ defaultValues, deviceId, devices = [], customers = 
   });
 
   const isPatchPanel = watch("type") === "PATCH_PANEL";
+  const selectedCustomerId = watch("customerId");
+
+  useEffect(() => {
+    const cid = selectedCustomerId;
+    if (!cid) { setLocations([]); return; }
+    fetch(`/api/customers/${cid}/locations`)
+      .then(r => r.json())
+      .then(setLocations)
+      .catch(() => setLocations([]));
+  }, [selectedCustomerId]);
 
   function getGpsLocation() {
     if (!navigator.geolocation) {
@@ -199,15 +212,37 @@ export function DeviceForm({ defaultValues, deviceId, devices = [], customers = 
           </select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Customer</label>
-          <select {...register("customerId")} className={field}>
-            <option value="">— None —</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
+        {lockedCustomerId ? (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Customer</label>
+            <div className={`${field} bg-slate-50 text-slate-600`}>
+              {customers.find(c => c.id === lockedCustomerId)?.name ?? lockedCustomerId}
+            </div>
+            <input type="hidden" {...register("customerId")} value={lockedCustomerId} />
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Customer</label>
+            <select {...register("customerId")} className={field}>
+              <option value="">— None —</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {(selectedCustomerId && locations.length > 0) && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Location</label>
+            <select {...register("locationId")} className={field}>
+              <option value="">— Select Location —</option>
+              {locations.map((l) => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="md:col-span-2">
           <div className="flex items-center justify-between mb-1">

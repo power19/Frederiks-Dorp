@@ -75,6 +75,8 @@ model Device {
   longitude    Float?
   customerId   String?
   customer     Customer?    @relation(fields: [customerId], references: [id])
+  locationId       String?
+  assignedLocation Location?    @relation(fields: [locationId], references: [id])
   parentId     String?
   parent       Device?      @relation("Topology", fields: [parentId], references: [id])
   children     Device[]     @relation("Topology")
@@ -87,6 +89,7 @@ model Device {
   @@index([type])
   @@index([status])
   @@index([location])
+  @@index([locationId])
 }
 
 model ChangelogEntry {
@@ -130,7 +133,24 @@ model Customer {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  devices Device[]
+  devices   Device[]
+  locations Location[]
+}
+
+model Location {
+  id         String   @id @default(cuid())
+  name       String
+  address    String?
+  latitude   Float?
+  longitude  Float?
+  notes      String?
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  devices    Device[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([customerId])
 }
 
 enum DeviceType {

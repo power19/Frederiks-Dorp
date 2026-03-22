@@ -20,6 +20,7 @@ const createSchema = z.object({
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
   customerId: z.string().optional().nullable(),
+  locationId: z.string().optional().nullable(),
 });
 
 export async function GET(req: NextRequest) {

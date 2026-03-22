@@ -4,8 +4,13 @@ import { DeviceForm } from "@/components/devices/DeviceForm";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
-export default async function NewDevicePage() {
+export default async function NewDevicePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ customerId?: string; locationId?: string }>;
+}) {
   await requireAuth();
+  const { customerId, locationId } = await searchParams;
 
   const [allDevices, allCustomers] = await Promise.all([
     prisma.device.findMany({
@@ -29,7 +34,15 @@ export default async function NewDevicePage() {
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <DeviceForm devices={allDevices} customers={allCustomers} />
+        <DeviceForm
+          devices={allDevices}
+          customers={allCustomers}
+          defaultValues={{
+            customerId: customerId ?? undefined,
+            locationId: locationId ?? undefined,
+          }}
+          lockedCustomerId={customerId}
+        />
       </div>
     </div>
   );

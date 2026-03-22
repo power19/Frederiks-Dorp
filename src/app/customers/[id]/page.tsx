@@ -6,6 +6,7 @@ import { ChevronLeft, Edit2, Building2 } from "lucide-react";
 import { StatusBadge } from "@/components/devices/StatusBadge";
 import { DeviceTypeBadge } from "@/components/devices/DeviceTypeBadge";
 import { DeleteCustomerButton } from "@/components/customers/DeleteCustomerButton";
+import { LocationManager } from "@/components/customers/LocationManager";
 import { format } from "date-fns";
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -84,6 +85,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             </div>
           )}
 
+          {/* Locations */}
+          <LocationManager customerId={customer.id} />
+
           {/* Devices */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <div className="flex items-center justify-between mb-4">
@@ -91,7 +95,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 Assigned Devices ({customer.devices.length})
               </h3>
               <Link
-                href={`/devices/new`}
+                href={`/devices/new?customerId=${customer.id}`}
                 className="text-sm text-blue-600 hover:underline"
               >
                 Add device →

@@ -22,6 +22,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
       children: { select: { id: true, name: true, type: true, status: true } },
       changelog: { orderBy: { createdAt: "desc" }, take: 50 },
       customer: { select: { id: true, name: true } },
+      assignedLocation: { select: { id: true, name: true, customerId: true } },
     },
   });
 
@@ -39,6 +40,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
     ["Status", null],
     ["Connected To", device.parent ? device.parent.name : null],
     ["Customer", device.customer ? device.customer.name : null],
+    ["Location", device.assignedLocation ? device.assignedLocation.name : null],
     ["Created", format(device.createdAt, "MMM d, yyyy HH:mm")],
     ["Last Updated", format(device.updatedAt, "MMM d, yyyy HH:mm")],
   ];

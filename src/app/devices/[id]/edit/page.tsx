@@ -54,6 +54,7 @@ export default async function EditDevicePage({ params }: { params: Promise<{ id:
             latitude: device.latitude ?? undefined,
             longitude: device.longitude ?? undefined,
             customerId: device.customerId ?? undefined,
+            locationId: device.locationId ?? undefined,
           }}
         />
       </div>
