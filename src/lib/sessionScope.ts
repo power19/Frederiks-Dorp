@@ -1,5 +1,7 @@
+import { getServerSession } from "next-auth";
 import { getToken } from "next-auth/jwt";
 import { headers, cookies } from "next/headers";
+import { authOptions } from "@/lib/auth";
 
 export type SessionScope = {
   userId: string;
@@ -11,17 +13,38 @@ export type SessionScope = {
   customerId: string | null;
 };
 
-export async function getSessionScope(): Promise<SessionScope | null> {
-  const headersList = await headers();
-  const cookieStore = await cookies();
+function buildScope(role: string, userId: string, customerId: string | null): SessionScope {
+  return {
+    userId,
+    role,
+    isAdmin:   role === "admin",
+    isManager: role === "manager",
+    isViewer:  role === "viewer",
+    customerId: role === "admin" ? null : customerId ?? null,
+  };
+}
 
-  // Build cookie object for getToken (web session cookies)
+export async function getSessionScope(): Promise<SessionScope | null> {
+  // ── Path 1: Standard web session (Server Components, pages, layouts) ──────
+  // getServerSession is the reliable way to read NextAuth JWT in App Router.
+  const session = await getServerSession(authOptions);
+  if (session?.user?.id) {
+    const role = session.user.role ?? "user";
+    const customerId = session.user.customerId ?? null;
+    return buildScope(role, session.user.id, customerId);
+  }
+
+  // ── Path 2: Mobile Bearer token (API routes called from the Android app) ──
+  // Only attempt getToken when an Authorization header is present; this avoids
+  // the synthetic-req unreliability issue in Server Component context.
+  const headersList = await headers();
+  const authHeader = headersList.get("authorization") ?? "";
+  if (!authHeader.startsWith("Bearer ")) return null;
+
+  const cookieStore = await cookies();
   const cookieObj: Record<string, string> = {};
   cookieStore.getAll().forEach(c => { cookieObj[c.name] = c.value; });
 
-  // Works for both:
-  //   - Web: reads next-auth.session-token cookie
-  //   - Mobile: reads Authorization: Bearer <token> header
   const token = await getToken({
     req: {
       headers: Object.fromEntries(headersList.entries()),
@@ -32,17 +55,6 @@ export async function getSessionScope(): Promise<SessionScope | null> {
 
   if (!token?.id) return null;
 
-  const role     = (token.role as string) ?? "user";
-  const isAdmin   = role === "admin";
-  const isManager = role === "manager";
-  const isViewer  = role === "viewer";
-
-  return {
-    userId:     token.id as string,
-    role,
-    isAdmin,
-    isManager,
-    isViewer,
-    customerId: isAdmin ? null : (token.customerId as string | null) ?? null,
-  };
+  const role = (token.role as string) ?? "user";
+  return buildScope(role, token.id as string, (token.customerId as string | null) ?? null);
 }
