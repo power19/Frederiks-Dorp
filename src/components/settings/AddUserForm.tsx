@@ -7,7 +7,8 @@ type Customer = { id: string; name: string };
 
 export function AddUserForm() {
   const router = useRouter();
-  const [form, setForm]         = useState({ name: "", email: "", password: "", role: "viewer", customerId: "" });
+  const [form, setForm]         = useState({ name: "", email: "", role: "viewer", customerId: "" });
+  const [createdPassword, setCreatedPassword] = useState<{ password: string; emailSent: boolean } | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [error, setError]       = useState("");
   const [success, setSuccess]   = useState("");
@@ -31,6 +32,7 @@ export function AddUserForm() {
     setLoading(true);
     setError("");
     setSuccess("");
+    setCreatedPassword(null);
 
     const res = await fetch("/api/users", {
       method: "POST",
@@ -57,8 +59,10 @@ export function AddUserForm() {
         setError(raw?.message ?? "Failed to create user");
       }
     } else {
+      const data = await res.json();
+      setCreatedPassword({ password: data.plainPassword, emailSent: data.emailSent });
       setSuccess("User created successfully");
-      setForm({ name: "", email: "", password: "", role: "viewer", customerId: "" });
+      setForm({ name: "", email: "", role: "viewer", customerId: "" });
       router.refresh();
     }
   }
@@ -70,8 +74,15 @@ export function AddUserForm() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
       )}
-      {success && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm">{success}</div>
+      {success && createdPassword && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-lg text-sm space-y-1.5">
+          <p className="font-semibold">✓ User created successfully</p>
+          <p>Generated password: <span className="font-mono bg-emerald-100 px-2 py-0.5 rounded text-emerald-900 select-all">{createdPassword.password}</span></p>
+          {createdPassword.emailSent
+            ? <p className="text-emerald-600">✉ Welcome email sent with credentials.</p>
+            : <p className="text-amber-600">⚠ Email could not be sent — share the password manually.</p>
+          }
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-4">
@@ -94,18 +105,6 @@ export function AddUserForm() {
             className={field}
             placeholder="john@example.com"
             required
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Password (min 8 chars)</label>
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className={field}
-            required
-            minLength={8}
           />
         </div>
         <div>
