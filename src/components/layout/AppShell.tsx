@@ -1,6 +1,6 @@
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
-import { TopBar } from "./TopBar";
+import { TopBar } from "./Topbar";
 import { SessionProvider } from "./SessionProvider";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
