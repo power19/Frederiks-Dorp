@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 
 type Port = {
@@ -33,14 +33,13 @@ export function PatchPanelPorts({ deviceId }: { deviceId: string }) {
   const [editForm, setEditForm] = useState<PortForm>(emptyForm);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    async function loadPorts() {
-      const res = await fetch(`/api/devices/${deviceId}/ports`);
-      if (res.ok) setPorts(await res.json());
-      setLoading(false);
-    }
-    loadPorts();
+  const loadPorts = useCallback(async () => {
+    const res = await fetch(`/api/devices/${deviceId}/ports`);
+    if (res.ok) setPorts(await res.json());
+    setLoading(false);
   }, [deviceId]);
+
+  useEffect(() => { loadPorts(); }, [loadPorts]);
 
   async function addPort() {
     if (!addForm.portNumber) return;

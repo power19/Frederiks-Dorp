@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Plus, Pencil, Trash2, Check, X, MapPin, Loader2 } from "lucide-react";
 
 type Location = {
@@ -33,14 +33,13 @@ export function LocationManager({ customerId }: { customerId: string }) {
   const [saving, setSaving] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const res = await fetch(`/api/customers/${customerId}/locations`);
-      if (res.ok) setLocations(await res.json());
-      setLoading(false);
-    }
-    load();
+  const load = useCallback(async () => {
+    const res = await fetch(`/api/customers/${customerId}/locations`);
+    if (res.ok) setLocations(await res.json());
+    setLoading(false);
   }, [customerId]);
+
+  useEffect(() => { load(); }, [load]);
 
   function getGps(setForm: (fn: (f: Form) => Form) => void) {
     if (!navigator.geolocation) return;
