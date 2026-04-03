@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, CheckCircle, Loader2, MessageCircle } from "lucide-react";
+import { Save, CheckCircle, Loader2 } from "lucide-react";
 
 const inputCls = "border border-slate-300 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-500";
 

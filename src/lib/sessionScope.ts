@@ -47,9 +47,9 @@ export async function getSessionScope(): Promise<SessionScope | null> {
 
   const token = await getToken({
     req: {
-      headers: Object.fromEntries(headersList.entries()),
+      headers: Object.fromEntries(headersList.entries()) as Record<string, string>,
       cookies: cookieObj,
-    } as any,
+    },
     secret: process.env.NEXTAUTH_SECRET!,
   });
 

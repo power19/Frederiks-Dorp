@@ -10,9 +10,6 @@ export function BottomNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
 
-  const userName = session?.user?.name ?? session?.user?.email ?? "User";
-  const initial  = userName[0].toUpperCase();
-
   const navItems = [
     { href: "/dashboard",  label: "Home",     icon: LayoutDashboard },
     { href: "/devices",    label: "Devices",  icon: Server },

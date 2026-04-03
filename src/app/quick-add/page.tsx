@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import {
   Wifi, Router, Server, Radio, ShoppingCart, Satellite,
   LayoutGrid, MapPin, Loader2, CheckCircle, ChevronDown, X
@@ -21,8 +20,6 @@ type Customer = { id: string; name: string };
 type Location = { id: string; name: string };
 
 export default function QuickAddPage() {
-  const router = useRouter();
-
   const [type, setType]           = useState("");
   const [name, setName]           = useState("");
   const [customerId, setCustomerId] = useState("");

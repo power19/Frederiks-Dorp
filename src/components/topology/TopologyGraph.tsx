@@ -469,7 +469,7 @@ export function TopologyGraph({ nodes: initNodes, edges: initEdges }: Props) {
 
       {/* Hint bar */}
       <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur border border-slate-200 text-slate-500 text-xs px-4 py-1.5 rounded-full shadow z-40 pointer-events-none">
-        Drag from a node's <strong className="text-slate-700">bottom handle</strong> to another node to connect · Hover an edge then click <strong className="text-red-500">✕</strong> to remove
+        Drag from a node&apos;s <strong className="text-slate-700">bottom handle</strong> to another node to connect · Hover an edge then click <strong className="text-red-500">✕</strong> to remove
       </div>
 
       {selected && (
