@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { getToken } from "next-auth/jwt";
 import { headers, cookies } from "next/headers";
 import { authOptions } from "@/lib/auth";
+import type { NextRequest } from "next/server";
 
 export type SessionScope = {
   userId: string;
@@ -49,7 +50,7 @@ export async function getSessionScope(): Promise<SessionScope | null> {
     req: {
       headers: Object.fromEntries(headersList.entries()) as Record<string, string>,
       cookies: cookieObj,
-    },
+    } as unknown as NextRequest,
     secret: process.env.NEXTAUTH_SECRET!,
   });
 
