@@ -2,13 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { LayoutDashboard, Server, Building2, PlusCircle, LogOut } from "lucide-react";
 import { clsx } from "clsx";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { data: session } = useSession();
 
   const navItems = [
     { href: "/dashboard",  label: "Home",     icon: LayoutDashboard },

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Server,
@@ -26,7 +26,6 @@ const navItems = [
 
 export function FloatingNav() {
   const pathname = usePathname();
-  const { data: session } = useSession();
   return (
     <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50">
       <nav className="flex items-center gap-1 bg-slate-900/95 backdrop-blur-md border border-slate-700/60 rounded-2xl px-3 py-2 shadow-2xl shadow-slate-900/40">

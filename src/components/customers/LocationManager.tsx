@@ -33,13 +33,14 @@ export function LocationManager({ customerId }: { customerId: string }) {
   const [saving, setSaving] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
 
-  async function load() {
-    const res = await fetch(`/api/customers/${customerId}/locations`);
-    if (res.ok) setLocations(await res.json());
-    setLoading(false);
-  }
-
-  useEffect(() => { load(); }, [customerId]);
+  useEffect(() => {
+    async function load() {
+      const res = await fetch(`/api/customers/${customerId}/locations`);
+      if (res.ok) setLocations(await res.json());
+      setLoading(false);
+    }
+    load();
+  }, [customerId]);
 
   function getGps(setForm: (fn: (f: Form) => Form) => void) {
     if (!navigator.geolocation) return;
