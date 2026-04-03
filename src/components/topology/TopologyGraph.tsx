@@ -9,12 +9,20 @@ import ReactFlow, {
   Position,
   Node,
   Edge,
+  Connection,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  EdgeProps,
+  getBezierPath,
+  BaseEdge,
+  EdgeLabelRenderer,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DeviceStatus, DeviceType } from "@/generated/prisma";
-import { X, ExternalLink, Wifi, WifiOff, Wrench } from "lucide-react";
+import { X, ExternalLink, Wifi, WifiOff, Wrench, Unlink } from "lucide-react";
 import { PatchPort } from "@/lib/topology";
 
 const typeColors: Record<DeviceType, string> = {
@@ -234,6 +242,40 @@ function PatchPanelNode({ data }: { data: DeviceNodeData }) {
 
 const nodeTypes: NodeTypes = { deviceNode: DeviceNode, patchPanelNode: PatchPanelNode };
 
+// ── Deletable edge ──────────────────────────────────────────────────────────
+
+function DeletableEdge({
+  id, sourceX, sourceY, targetX, targetY,
+  sourcePosition, targetPosition, data, animated, markerEnd,
+}: EdgeProps) {
+  const [edgePath, labelX, labelY] = getBezierPath({ sourceX, sourceY, sourcePosition, targetX, targetY, targetPosition });
+
+  return (
+    <>
+      <BaseEdge id={id} path={edgePath} markerEnd={markerEnd} style={{ stroke: "#94a3b8", strokeWidth: 2, ...(animated ? { strokeDasharray: "5 3" } : {}) }} />
+      <EdgeLabelRenderer>
+        <div
+          style={{ position: "absolute", transform: `translate(-50%,-50%) translate(${labelX}px,${labelY}px)`, pointerEvents: "all" }}
+          className="nodrag nopan"
+        >
+          <button
+            onClick={() => data?.onDelete(id)}
+            title="Remove connection"
+            className="w-5 h-5 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ opacity: 0 }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+            onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
+          >
+            <Unlink size={10} />
+          </button>
+        </div>
+      </EdgeLabelRenderer>
+    </>
+  );
+}
+
+const edgeTypes = { deletable: DeletableEdge };
+
 // ── Status badge ───────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: DeviceStatus }) {
@@ -338,12 +380,65 @@ interface Props {
   edges: Edge[];
 }
 
-export function TopologyGraph({ nodes, edges }: Props) {
-  const [selected, setSelected] = useState<DeviceNodeData | null>(null);
+async function saveConnection(childId: string, parentId: string | null) {
+  await fetch(`/api/devices/${childId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parentId }),
+  });
+}
+
+export function TopologyGraph({ nodes: initNodes, edges: initEdges }: Props) {
+  const [selected, setSelected]   = useState<DeviceNodeData | null>(null);
+  const [saving, setSaving]        = useState(false);
+
+  // Attach onDelete callback to every edge
+  const withDeleteCb = useCallback((edges: Edge[]) =>
+    edges.map(e => ({
+      ...e,
+      type: "deletable",
+      animated: e.animated,
+      data: { ...e.data, onDelete: handleDeleteEdge },
+    })),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  []);
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(initNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(withDeleteCb(initEdges));
+
+  // Re-sync when parent passes new data (customer switch)
+  useEffect(() => { setNodes(initNodes); },  [initNodes, setNodes]);
+  useEffect(() => { setEdges(withDeleteCb(initEdges)); }, [initEdges, setEdges, withDeleteCb]);
 
   const onNodeClick = useCallback((_: React.MouseEvent, node: Node) => {
     setSelected(node.data as DeviceNodeData);
   }, []);
+
+  // Draw a new connection
+  const onConnect = useCallback(async (connection: Connection) => {
+    if (!connection.source || !connection.target) return;
+    setSaving(true);
+    try {
+      await saveConnection(connection.target, connection.source);
+      setEdges(eds => addEdge(
+        { ...connection, type: "deletable", data: { onDelete: handleDeleteEdge } },
+        eds
+      ));
+    } finally {
+      setSaving(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setEdges]);
+
+  // Remove a connection
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  function handleDeleteEdge(edgeId: string) {
+    const edge = edges.find(e => e.id === edgeId);
+    if (!edge) return;
+    setSaving(true);
+    saveConnection(edge.target, null).finally(() => setSaving(false));
+    setEdges(eds => eds.filter(e => e.id !== edgeId));
+  }
 
   return (
     <div style={{ width: "100%", height: "calc(100vh - 112px)" }} className="relative">
@@ -351,13 +446,31 @@ export function TopologyGraph({ nodes, edges }: Props) {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        fitView
+        edgeTypes={edgeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
         onNodeClick={onNodeClick}
+        fitView
+        deleteKeyCode="Delete"
+        connectOnClick={false}
       >
         <Background />
         <Controls />
         <MiniMap nodeColor={(n) => (n.data as DeviceNodeData).customerColor ?? "#94a3b8"} />
       </ReactFlow>
+
+      {/* Saving indicator */}
+      {saving && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs px-3 py-1.5 rounded-full shadow-lg z-50">
+          Saving…
+        </div>
+      )}
+
+      {/* Hint bar */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur border border-slate-200 text-slate-500 text-xs px-4 py-1.5 rounded-full shadow z-40 pointer-events-none">
+        Drag from a node's <strong className="text-slate-700">bottom handle</strong> to another node to connect · Hover an edge then click <strong className="text-red-500">✕</strong> to remove
+      </div>
 
       {selected && (
         <DevicePopup data={selected} onClose={() => setSelected(null)} />

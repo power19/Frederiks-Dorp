@@ -13,14 +13,33 @@ model User {
   name          String?
   email         String    @unique
   password      String
-  role          String    @default("viewer")
+  role          String    @default("user")
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
   emailVerified DateTime?
   image         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
+  accounts      Account[]
+  sessions      Session[]
+  resetTokens   PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AppSettings {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 model Account {
@@ -60,28 +79,30 @@ model VerificationToken {
 }
 
 model Device {
-  id           String       @id @default(cuid())
-  name         String
-  type         DeviceType
-  ipAddress    String?
-  macAddress   String?
-  manufacturer String?
-  model        String?
-  serialNumber String?
-  location     String?
-  status       DeviceStatus @default(ACTIVE)
-  notes        String?
-  latitude     Float?
-  longitude    Float?
-  customerId   String?
-  customer     Customer?    @relation(fields: [customerId], references: [id])
+  id               String       @id @default(cuid())
+  name             String
+  type             DeviceType
+  ipAddress        String?
+  macAddress       String?
+  manufacturer     String?
+  model            String?
+  serialNumber     String?
+  location         String?
+  status           DeviceStatus @default(ACTIVE)
+  notes            String?
+  wirelessMode     String?   // P2P/AP: "ST" (Station) or "AP" (Access Point)
+  frequency        String?   // e.g. "2.4 GHz", "5 GHz", "5.8 GHz", "900 MHz"
+  latitude         Float?
+  longitude        Float?
+  customerId       String?
+  customer         Customer?    @relation(fields: [customerId], references: [id])
   locationId       String?
   assignedLocation Location?    @relation(fields: [locationId], references: [id])
-  parentId     String?
-  parent       Device?      @relation("Topology", fields: [parentId], references: [id])
-  children     Device[]     @relation("Topology")
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  parentId         String?
+  parent           Device?      @relation("Topology", fields: [parentId], references: [id])
+  children         Device[]     @relation("Topology")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
 
   changelog ChangelogEntry[]
   ports     PatchPanelPort[]
@@ -133,6 +154,7 @@ model Customer {
   devices   Device[]
   locations Location[]
   contacts  CustomerContact[]
+  users     User[]
 }
 
 model CustomerContact {

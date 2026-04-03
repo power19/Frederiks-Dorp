@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   Server,
@@ -10,20 +11,23 @@ import {
   Settings,
   Building2,
   Network,
+  LogOut,
 } from "lucide-react";
 import { clsx } from "clsx";
 
 const navItems = [
-  { href: "/dashboard",  label: "Dashboard",     icon: LayoutDashboard },
-  { href: "/devices",    label: "Devices",        icon: Server },
-  { href: "/customers",  label: "Customers",      icon: Building2 },
-  { href: "/topology",   label: "Topology",       icon: GitBranch },
-  { href: "/export",     label: "Import/Export",  icon: ArrowDownUp },
-  { href: "/settings",   label: "Settings",       icon: Settings },
+  { href: "/dashboard",  label: "Dashboard",    icon: LayoutDashboard },
+  { href: "/devices",    label: "Devices",       icon: Server },
+  { href: "/customers",  label: "Customers",     icon: Building2 },
+  { href: "/topology",   label: "Topology",      icon: GitBranch },
+  { href: "/export",     label: "Import/Export", icon: ArrowDownUp },
+  { href: "/settings",   label: "Settings",      icon: Settings },
 ];
 
 export function FloatingNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const initial = (session?.user?.name ?? session?.user?.email ?? "?")[0].toUpperCase();
 
   return (
     <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50">
@@ -33,7 +37,7 @@ export function FloatingNav() {
           <div className="bg-blue-500 p-1.5 rounded-lg">
             <Network size={14} />
           </div>
-          <span className="text-white text-xs font-bold hidden sm:block">FD</span>
+          <span className="text-white text-xs font-bold hidden sm:block">PM</span>
         </div>
 
         {navItems.map(({ href, label, icon: Icon }) => {
@@ -55,6 +59,19 @@ export function FloatingNav() {
             </Link>
           );
         })}
+
+        {/* Divider */}
+        <div className="w-px h-6 bg-slate-700 mx-1" />
+
+        {/* Sign out */}
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          title="Sign out"
+          className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs font-medium text-red-400 hover:text-white hover:bg-red-600 transition-all duration-150"
+        >
+          <LogOut size={17} />
+          <span className="text-[10px] leading-none">Sign out</span>
+        </button>
       </nav>
     </div>
   );

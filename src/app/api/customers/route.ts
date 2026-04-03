@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getSessionScope } from "@/lib/sessionScope";
 import { z } from "zod";
 
 const customerSchema = z.object({
@@ -11,11 +10,20 @@ const customerSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const scope = await getSessionScope();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search");
+
+  // Scoped users only see their own customer
+  if (scope.customerId) {
+    const customer = await prisma.customer.findUnique({
+      where: { id: scope.customerId },
+      include: { _count: { select: { devices: true } } },
+    });
+    return NextResponse.json(customer ? [customer] : []);
+  }
 
   const customers = await prisma.customer.findMany({
     where: search ? {
@@ -32,8 +40,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const scope = await getSessionScope();
+  if (!scope || !scope.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = customerSchema.safeParse(body);

@@ -19,6 +19,8 @@ const schema = z.object({
   location: z.string().optional(),
   status: z.nativeEnum(DeviceStatus),
   notes: z.string().optional(),
+  wirelessMode: z.string().optional().nullable(),
+  frequency: z.string().optional().nullable(),
   parentId: z.string().optional(),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
@@ -79,6 +81,7 @@ export function DeviceForm({ defaultValues, deviceId, devices = [], customers = 
   });
 
   const isPatchPanel = watch("type") === "PATCH_PANEL";
+  const isWireless   = ["P2P", "ACCESS_POINT"].includes(watch("type") ?? "");
   const selectedCustomerId = watch("customerId");
 
   useEffect(() => {
@@ -125,7 +128,16 @@ export function DeviceForm({ defaultValues, deviceId, devices = [], customers = 
     if (!res.ok) {
       try {
         const err = await res.json();
-        setError(err.error?.message ?? err.error ?? "Something went wrong");
+        const raw = err.error;
+        if (typeof raw === "string") {
+          setError(raw);
+        } else if (raw?.fieldErrors) {
+          // Zod flatten error — pick the first field error message
+          const first = Object.values(raw.fieldErrors as Record<string, string[]>)[0]?.[0];
+          setError(first ?? "Validation error");
+        } else {
+          setError(raw?.message ?? "Something went wrong");
+        }
       } catch {
         setError(`Server error (${res.status}) — please try again`);
       }
@@ -162,6 +174,34 @@ export function DeviceForm({ defaultValues, deviceId, devices = [], customers = 
             ))}
           </select>
         </div>
+
+        {isWireless && (
+          <>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Wireless Mode</label>
+              <select {...register("wirelessMode")} className={field}>
+                <option value="">— Select —</option>
+                <option value="ST">ST (Station)</option>
+                <option value="AP">AP (Access Point)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Frequency</label>
+              <select {...register("frequency")} className={field}>
+                <option value="">— Select —</option>
+                <option value="900 MHz">900 MHz</option>
+                <option value="2.4 GHz">2.4 GHz</option>
+                <option value="5 GHz">5 GHz</option>
+                <option value="5.8 GHz">5.8 GHz</option>
+                <option value="6 GHz">6 GHz</option>
+                <option value="11 GHz">11 GHz</option>
+                <option value="24 GHz">24 GHz</option>
+                <option value="60 GHz">60 GHz</option>
+              </select>
+            </div>
+          </>
+        )}
 
         {!isPatchPanel && (
           <>

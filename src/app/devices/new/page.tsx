@@ -1,26 +1,39 @@
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/requireAuth";
+import { getSessionScope } from "@/lib/sessionScope";
 import { DeviceForm } from "@/components/devices/DeviceForm";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default async function NewDevicePage({
   searchParams,
 }: {
   searchParams: Promise<{ customerId?: string; locationId?: string }>;
 }) {
-  await requireAuth();
-  const { customerId, locationId } = await searchParams;
+  const scope = await getSessionScope();
+  if (!scope) redirect("/login");
+  if (scope.isViewer) redirect("/devices");
+
+  const { customerId: qCustomerId, locationId } = await searchParams;
+
+  // Scoped users are locked to their own customer
+  const effectiveCustomerId = scope.customerId ?? qCustomerId;
 
   const [allDevices, allCustomers] = await Promise.all([
     prisma.device.findMany({
+      where: scope.customerId ? { customerId: scope.customerId } : {},
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    prisma.customer.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+    scope.customerId
+      ? prisma.customer.findMany({
+          where: { id: scope.customerId },
+          select: { id: true, name: true },
+        })
+      : prisma.customer.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        }),
   ]);
 
   return (
@@ -38,10 +51,10 @@ export default async function NewDevicePage({
           devices={allDevices}
           customers={allCustomers}
           defaultValues={{
-            customerId: customerId ?? undefined,
+            customerId: effectiveCustomerId ?? undefined,
             locationId: locationId ?? undefined,
           }}
-          lockedCustomerId={customerId}
+          lockedCustomerId={effectiveCustomerId}
         />
       </div>
     </div>

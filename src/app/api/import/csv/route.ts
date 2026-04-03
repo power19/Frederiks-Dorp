@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   const dryRun = formData.get("dryRun") === "true";
+  const linkOnly = formData.get("linkOnly") === "true"; // only wire up parentId, don't create
 
   if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
   if (!file.name.endsWith(".csv")) {
@@ -64,6 +65,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "CSV is empty or has no data rows" }, { status: 400 });
   }
 
+  // ── Link-only mode: just wire up parentId on existing devices ──────────────
+  if (linkOnly) {
+    let linked = 0;
+    let missed = 0;
+    const linkResults: { row: number; name: string; status: "ok"|"skipped"; message: string }[] = [];
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const name = row["name"]?.trim();
+      const connectedTo = row["connectedTo"]?.trim() || row["connected_to"]?.trim() || null;
+      if (!name || !connectedTo) { missed++; continue; }
+
+      const child  = await prisma.device.findFirst({ where: { name }, select: { id: true } });
+      const parent = await prisma.device.findFirst({ where: { name: connectedTo }, select: { id: true } });
+
+      if (!child) {
+        linkResults.push({ row: i + 2, name, status: "skipped", message: `Device "${name}" not found` });
+        missed++;
+      } else if (!parent) {
+        linkResults.push({ row: i + 2, name, status: "skipped", message: `Parent "${connectedTo}" not found` });
+        missed++;
+      } else if (!dryRun) {
+        await prisma.device.update({ where: { id: child.id }, data: { parentId: parent.id } });
+        linkResults.push({ row: i + 2, name, status: "ok", message: `→ ${connectedTo}` });
+        linked++;
+      } else {
+        linkResults.push({ row: i + 2, name, status: "ok", message: `Will link → ${connectedTo}` });
+        linked++;
+      }
+    }
+    return NextResponse.json({ total: rows.length, linked, missed, dryRun, linkOnly: true, results: linkResults });
+  }
+  // ───────────────────────────────────────────────────────────────────────────
+
   const results: {
     row: number;
     name: string;
@@ -74,6 +109,12 @@ export async function POST(req: NextRequest) {
   let created = 0;
   let skipped = 0;
   let errors = 0;
+
+  // name → id map for wiring up parentId in second pass
+  const nameToId = new Map<string, string>();
+
+  // rows that need parent wiring: { deviceId, parentName }
+  const pendingParents: { deviceId: string; parentName: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -89,6 +130,7 @@ export async function POST(req: NextRequest) {
     const serialNumber = row["serialNumber"]?.trim() || row["serial_number"]?.trim() || null;
     const location = row["location"]?.trim() || null;
     const notes = row["notes"]?.trim() || null;
+    const connectedTo = row["connectedTo"]?.trim() || row["connected_to"]?.trim() || null;
 
     // Validate required fields
     if (!name) {
@@ -126,7 +168,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (dryRun) {
-      results.push({ row: rowNum, name, status: "ok", message: "Will be created" });
+      results.push({ row: rowNum, name, status: "ok", message: connectedTo ? `Will be created (connected to: ${connectedTo})` : "Will be created" });
       created++;
       continue;
     }
@@ -155,6 +197,11 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      nameToId.set(name, device.id);
+      if (connectedTo) {
+        pendingParents.push({ deviceId: device.id, parentName: connectedTo });
+      }
+
       await prisma.changelogEntry.create({
         data: {
           deviceId: device.id,
@@ -172,5 +219,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ total: rows.length, created, skipped, errors, dryRun, results });
+  // Second pass: wire up parent connections
+  let connected = 0;
+  if (!dryRun && pendingParents.length > 0) {
+    for (const { deviceId, parentName } of pendingParents) {
+      // Look up in this import first, then in the database
+      let parentId = nameToId.get(parentName);
+      if (!parentId) {
+        const found = await prisma.device.findFirst({ where: { name: parentName }, select: { id: true } });
+        parentId = found?.id;
+      }
+      if (parentId) {
+        await prisma.device.update({ where: { id: deviceId }, data: { parentId } });
+        connected++;
+      }
+    }
+  }
+
+  return NextResponse.json({ total: rows.length, created, skipped, errors, connected, dryRun, results });
 }

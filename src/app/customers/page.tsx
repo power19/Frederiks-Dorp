@@ -1,25 +1,32 @@
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/requireAuth";
+import { getSessionScope } from "@/lib/sessionScope";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, Building2 } from "lucide-react";
 
-interface SearchParams {
-  search?: string;
-}
+interface SearchParams { search?: string }
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  await requireAuth();
+  const scope = await getSessionScope();
+  if (!scope) redirect("/login");
+
+  // Scoped users only have one customer — send them straight there
+  if (scope.customerId) redirect(`/customers/${scope.customerId}`);
+
   const sp = await searchParams;
 
   const customers = await prisma.customer.findMany({
     where: sp.search ? {
       OR: [
         { name: { contains: sp.search } },
-        { contactName: { contains: sp.search } },
-        { email: { contains: sp.search } },
+        { contacts: { some: { name: { contains: sp.search } } } },
+        { contacts: { some: { email: { contains: sp.search } } } },
       ],
     } : undefined,
-    include: { _count: { select: { devices: true } } },
+    include: {
+      _count: { select: { devices: true } },
+      contacts: { orderBy: { createdAt: "asc" }, take: 1 },
+    },
     orderBy: { name: "asc" },
   });
 
@@ -47,16 +54,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           placeholder="Search name, contact, email…"
           className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <button
-          type="submit"
-          className="bg-slate-800 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-slate-700 transition-colors"
-        >
+        <button type="submit" className="bg-slate-800 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-slate-700 transition-colors">
           Search
         </button>
         {sp.search && (
-          <Link href="/customers" className="text-slate-500 hover:text-slate-700 text-sm py-1.5">
-            Clear
-          </Link>
+          <Link href="/customers" className="text-slate-500 hover:text-slate-700 text-sm py-1.5">Clear</Link>
         )}
       </form>
 
@@ -83,8 +85,10 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-900">{customer.name}</h3>
-                    {customer.contactName && (
-                      <p className="text-sm text-slate-500">{customer.contactName}</p>
+                    {customer.contacts[0] && (
+                      <p className="text-sm text-slate-500">
+                        {customer.contacts[0].name}{customer.contacts[0].role ? ` · ${customer.contacts[0].role}` : ""}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -92,11 +96,11 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                   {customer._count.devices} device{customer._count.devices !== 1 ? "s" : ""}
                 </span>
               </div>
-              {customer.email && (
-                <p className="text-sm text-slate-500 mt-3 truncate">{customer.email}</p>
+              {customer.contacts[0]?.email && (
+                <p className="text-sm text-slate-500 mt-3 truncate">{customer.contacts[0].email}</p>
               )}
-              {customer.phone && (
-                <p className="text-sm text-slate-500 mt-1">{customer.phone}</p>
+              {customer.contacts[0]?.phone && (
+                <p className="text-sm text-slate-500 mt-1">{customer.contacts[0].phone}</p>
               )}
             </Link>
           ))}

@@ -1,0 +1,18 @@
+Name,Type,IP Address,MAC Address,Manufacturer,Model,Serial Number,Location,Status,Connected To,Notes,Created,Updated
+AP-Bar,ACCESS_POINT,192.168.2.10,,Ubiquiti,,,Bar,ACTIVE,SW-Keuken-01,Wireless AP at Bar. Cat6 uplink to SW-Keuken-01.,2026-03-23T03:15:16.481Z,2026-03-23T03:15:16.481Z
+AP-Cabana22,ACCESS_POINT,,,Ubiquiti,,,Cabana 22,ACTIVE,P2P-Cabana22-TX,Wireless AP at Cabana 22. Uplink via P2P from Politie Woning.,2026-03-23T03:15:16.511Z,2026-03-23T03:15:16.511Z
+AP-PolitieWoning,ACCESS_POINT,,,Ubiquiti,,,Politie Woning,ACTIVE,P2P-PolitieWoning-RX,SSID: OFFICE / GUEST. Wireless AP at Politie Woning.,2026-03-23T03:15:16.505Z,2026-03-23T03:15:16.505Z
+AP-VerhalenMus,ACCESS_POINT,,,Ubiquiti,,,Verhalen Museum,ACTIVE,P2P-VerhalenMus-TX,Wireless AP at Verhalen Museum. Uplink via P2P from Ambassador.,2026-03-23T03:15:16.495Z,2026-03-23T03:15:16.495Z
+ER605-Main,ROUTER,192.168.1.1,,TP-Link,ER605,,Frederiks Dorp - Main Site,ACTIVE,PP-Main,Main gateway router. WAN from Starlink via PP-Main port 1.,2026-03-23T03:15:16.467Z,2026-03-23T03:15:16.467Z
+P2P-Ambassador-RX,P2P,,,Ubiquiti,PowerBeam M5,,Ambassador,ACTIVE,P2P-Ambassador-TX,P2P #2 receiver at Ambassador,2026-03-23T03:15:16.490Z,2026-03-23T03:15:16.490Z
+P2P-Ambassador-TX,P2P,,,Ubiquiti,PowerBeam M5,,Frederiks Dorp - Main Site Roof,ACTIVE,ER605-Main,P2P #2 transmitter → Ambassador,2026-03-23T03:15:16.486Z,2026-03-23T03:15:16.486Z
+P2P-Cabana22-TX,P2P,,,Ubiquiti,PowerBeam M5,,Politie Woning,ACTIVE,P2P-PolitieWoning-RX,P2P transmitter at Politie Woning → Cabana 22,2026-03-23T03:15:16.509Z,2026-03-23T03:15:16.509Z
+P2P-Keuken-RX,P2P,,,Ubiquiti,PowerBeam M5,,Keuken,ACTIVE,P2P-Keuken-TX,P2P #1 receiver at Keuken,2026-03-23T03:15:16.475Z,2026-03-23T03:15:16.475Z
+P2P-Keuken-TX,P2P,,,Ubiquiti,PowerBeam M5,,Frederiks Dorp - Main Site Roof,ACTIVE,ER605-Main,P2P #1 transmitter → Keuken,2026-03-23T03:15:16.470Z,2026-03-23T03:15:16.470Z
+P2P-PolitieWoning-RX,P2P,,,Ubiquiti,PowerBeam M5,,Politie Woning,ACTIVE,P2P-PolitieWoning-TX,P2P #4 receiver at Politie Woning,2026-03-23T03:15:16.502Z,2026-03-23T03:15:16.502Z
+P2P-PolitieWoning-TX,P2P,,,Ubiquiti,PowerBeam M5,,Frederiks Dorp - Main Site Roof,ACTIVE,ER605-Main,P2P #4 transmitter → Politie Woning,2026-03-23T03:15:16.498Z,2026-03-23T03:15:16.498Z
+P2P-VerhalenMus-TX,P2P,,,Ubiquiti,PowerBeam M5,,Ambassador,ACTIVE,P2P-Ambassador-RX,P2P #3 transmitter at Ambassador → Verhalen Museum,2026-03-23T03:15:16.492Z,2026-03-23T03:15:16.492Z
+PP-Main,PATCH_PANEL,,,,,,Frederiks Dorp - Main Site,ACTIVE,Starlink-01,Port 1 → ER605,2026-03-23T03:15:16.464Z,2026-03-23T03:15:16.464Z
+Router-Receptie,ROUTER,192.168.2.20,,TP-Link,,,Reception,ACTIVE,SW-Keuken-01,SSID: Receptie. Cat6 uplink to SW-Keuken-01.,2026-03-23T03:15:16.484Z,2026-03-23T03:15:16.484Z
+SW-Keuken-01,SWITCH,192.168.2.1,,TP-Link,TL-SG116 (16-port),,Keuken,ACTIVE,P2P-Keuken-RX,16-port switch at Keuken. Feeds Bar AP and Receptie Router.,2026-03-23T03:15:16.478Z,2026-03-23T03:15:16.478Z
+Starlink-01,STARLINK,,,Starlink,,,Frederiks Dorp - Main Site Roof,ACTIVE,,Primary internet uplink,2026-03-23T03:15:16.460Z,2026-03-23T03:15:16.460Z

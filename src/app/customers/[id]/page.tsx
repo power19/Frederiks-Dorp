@@ -1,5 +1,6 @@
+export const dynamic = "force-dynamic";
+
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/requireAuth";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Edit2, Building2 } from "lucide-react";
@@ -8,10 +9,10 @@ import { DeviceTypeBadge } from "@/components/devices/DeviceTypeBadge";
 import { DeleteCustomerButton } from "@/components/customers/DeleteCustomerButton";
 import { LocationManager } from "@/components/customers/LocationManager";
 import { CustomerContacts } from "@/components/customers/CustomerContacts";
+import { CustomerUsers } from "@/components/customers/CustomerUsers";
 import { format } from "date-fns";
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAuth();
   const { id } = await params;
 
   const customer = await prisma.customer.findUnique({
@@ -84,6 +85,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
           {/* Locations */}
           <LocationManager customerId={customer.id} />
+
+          {/* Users & Access */}
+          <CustomerUsers customerId={customer.id} />
 
           {/* Devices */}
           <div className="bg-white rounded-xl border border-slate-200 p-5">

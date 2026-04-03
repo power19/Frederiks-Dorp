@@ -9,7 +9,11 @@ const createUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(["admin", "editor", "viewer"]).default("viewer"),
+  role: z.enum(["admin", "manager", "editor", "viewer"]).default("viewer"),
+  customerId: z.string().optional().nullable(),
+}).refine(d => d.role === "admin" || !!d.customerId, {
+  message: "Customer is required for manager, editor and viewer roles",
+  path: ["customerId"],
 });
 
 export async function GET() {
@@ -47,12 +51,13 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.create({
     data: {
-      name: parsed.data.name,
-      email: parsed.data.email,
-      password: hashed,
-      role: parsed.data.role,
+      name:       parsed.data.name,
+      email:      parsed.data.email,
+      password:   hashed,
+      role:       parsed.data.role,
+      customerId: parsed.data.role === "admin" ? null : (parsed.data.customerId ?? null),
     },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: { id: true, name: true, email: true, role: true, customerId: true, createdAt: true },
   });
 
   return NextResponse.json(user, { status: 201 });

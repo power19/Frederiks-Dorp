@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getSessionScope } from "@/lib/sessionScope";
 import { DeviceStatus, DeviceType } from "@/generated/prisma";
 import { z } from "zod";
 
@@ -16,6 +15,8 @@ const createSchema = z.object({
   location: z.string().optional().nullable(),
   status: z.nativeEnum(DeviceStatus).optional(),
   notes: z.string().optional().nullable(),
+  wirelessMode: z.string().optional().nullable(),
+  frequency: z.string().optional().nullable(),
   parentId: z.string().optional().nullable().transform(v => v || null),
   latitude: z.number().optional().nullable(),
   longitude: z.number().optional().nullable(),
@@ -24,15 +25,16 @@ const createSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const scope = await getSessionScope();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type") as DeviceType | null;
   const status = searchParams.get("status") as DeviceStatus | null;
   const location = searchParams.get("location");
   const search = searchParams.get("search");
-  const customerId = searchParams.get("customerId");
+  // Scoped users are always filtered to their customer; admins can filter optionally
+  const customerId = scope.customerId ?? searchParams.get("customerId");
   const page = parseInt(searchParams.get("page") ?? "1");
   const limit = parseInt(searchParams.get("limit") ?? "50");
 
@@ -71,8 +73,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const scope = await getSessionScope();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (scope.isViewer) return NextResponse.json({ error: "Read-only access" }, { status: 403 });
 
   const body = await req.json();
   const parsed = createSchema.safeParse(body);
@@ -80,16 +83,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const device = await prisma.device.create({
-    data: parsed.data,
-  });
+  // Scoped users can only create devices for their own customer
+  const data = {
+    ...parsed.data,
+    ...(scope.customerId && { customerId: scope.customerId }),
+  };
+
+  const device = await prisma.device.create({ data });
 
   await prisma.changelogEntry.create({
     data: {
       deviceId: device.id,
       action: "CREATED",
       summary: `Device "${device.name}" created`,
-      author: session.user?.email ?? session.user?.name ?? "unknown",
+      author: scope.userId,
     },
   });
 

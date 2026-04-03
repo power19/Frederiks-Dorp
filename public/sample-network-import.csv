@@ -1,0 +1,19 @@
+name,type,status,ipAddress,macAddress,manufacturer,model,serialNumber,location,connectedTo,notes
+Starlink-01,STARLINK,ACTIVE,192.168.100.1,,,Starlink Gen3,,Main Building - Roof,,Primary internet uplink via Starlink dish. NAT gateway to core network.
+PP-MDF-01,PATCH_PANEL,ACTIVE,,,Leviton,48-Port Cat6,,Main Building - Server Room,Starlink-01,Main Distribution Frame. All building runs terminate here.
+SW-Core-01,SWITCH,ACTIVE,10.0.0.1,AA:BB:CC:DD:EE:01,Cisco,Catalyst 2960X-48TS,FOC12345678,Main Building - Server Room,PP-MDF-01,Core distribution switch. Uplink to Starlink-01 via PP-MDF-01. VLAN trunk to all access switches.
+PP-IDF-Floor1,PATCH_PANEL,ACTIVE,,,Leviton,24-Port Cat6,,Main Building - Floor 1 Comms Cupboard,SW-Core-01,Floor 1 intermediate patch panel. Feeds Floor 1 outlets.
+PP-IDF-Floor2,PATCH_PANEL,ACTIVE,,,Leviton,24-Port Cat6,,Main Building - Floor 2 Comms Cupboard,SW-Core-01,Floor 2 intermediate patch panel. Feeds Floor 2 outlets.
+SW-Floor1-01,SWITCH,ACTIVE,10.0.1.1,AA:BB:CC:DD:EE:02,Cisco,Catalyst 2960X-24TS,FOC12345679,Main Building - Floor 1 Comms Cupboard,PP-IDF-Floor1,Floor 1 access switch. Uplink to SW-Core-01 via PP-IDF-Floor1.
+SW-Floor2-01,SWITCH,ACTIVE,10.0.2.1,AA:BB:CC:DD:EE:03,Cisco,Catalyst 2960X-24TS,FOC12345680,Main Building - Floor 2 Comms Cupboard,PP-IDF-Floor2,Floor 2 access switch. Uplink to SW-Core-01 via PP-IDF-Floor2.
+AP-Main-Hall,ACCESS_POINT,ACTIVE,10.0.0.10,AA:BB:CC:DD:EE:10,Ubiquiti,UniFi AP-AC-Pro,U7PG3-AABB01,Main Building - Reception,SW-Core-01,Main hall wireless AP. SSID: FD-Staff and FD-Guest.
+AP-Floor1-01,ACCESS_POINT,ACTIVE,10.0.1.10,AA:BB:CC:DD:EE:11,Ubiquiti,UniFi AP-AC-Lite,U4PRO-CCDD01,Main Building - Floor 1,SW-Floor1-01,Floor 1 wireless coverage.
+AP-Floor2-01,ACCESS_POINT,ACTIVE,10.0.2.10,AA:BB:CC:DD:EE:12,Ubiquiti,UniFi AP-AC-Lite,U4PRO-EEFF01,Main Building - Floor 2,SW-Floor2-01,Floor 2 wireless coverage.
+P2P-Site2-TX,P2P,ACTIVE,10.10.1.1,AA:BB:CC:DD:FF:01,Ubiquiti,airMAX LiteBeam 5AC,LBE-5AC-GEN2-001,Main Building - Roof,SW-Core-01,Point-to-point transmitter to Site 2. 5GHz backhaul link.
+P2P-Site3-TX,P2P,ACTIVE,10.10.2.1,AA:BB:CC:DD:FF:03,Ubiquiti,airMAX PowerBeam 5AC,PBE-5AC-500-003,Main Building - Roof,SW-Core-01,Point-to-point transmitter to Site 3. Longer range 5GHz backhaul.
+P2P-Site2-RX,P2P,ACTIVE,10.10.1.2,AA:BB:CC:DD:FF:02,Ubiquiti,airMAX LiteBeam 5AC,LBE-5AC-GEN2-002,Site 2 - Roof,P2P-Site2-TX,Point-to-point receiver at Site 2.
+P2P-Site3-RX,P2P,ACTIVE,10.10.2.2,AA:BB:CC:DD:FF:04,Ubiquiti,airMAX PowerBeam 5AC,PBE-5AC-500-004,Site 3 - Roof,P2P-Site3-TX,Point-to-point receiver at Site 3.
+SW-Site2-01,SWITCH,ACTIVE,10.0.3.1,AA:BB:CC:DD:EE:20,TP-Link,TL-SG108E,,Site 2 - Network Cupboard,P2P-Site2-RX,Site 2 local switch. Uplink via P2P-Site2-RX.
+AP-Site2-01,ACCESS_POINT,ACTIVE,10.0.3.10,AA:BB:CC:DD:EE:21,Ubiquiti,UniFi AP-AC-Lite,U4PRO-AABB10,Site 2,SW-Site2-01,Site 2 wireless AP.
+SW-Site3-01,SWITCH,ACTIVE,10.0.4.1,AA:BB:CC:DD:EE:30,TP-Link,TL-SG108E,,Site 3 - Network Cupboard,P2P-Site3-RX,Site 3 local switch. Uplink via P2P-Site3-RX.
+AP-Site3-01,ACCESS_POINT,ACTIVE,10.0.4.10,AA:BB:CC:DD:EE:31,Ubiquiti,UniFi AP-AC-Lite,U4PRO-CCDD10,Site 3,SW-Site3-01,Site 3 wireless AP.

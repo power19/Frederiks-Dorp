@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionScope } from "@/lib/sessionScope";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -12,20 +11,19 @@ const updateSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string; contactId: string }> }
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { contactId } = await params;
+type Params = { params: Promise<{ id: string; contactId: string }> };
 
+export async function PUT(req: NextRequest, { params }: Params) {
+  const scope = await getSessionScope();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!scope.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  const { contactId } = await params;
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { email, ...rest } = parsed.data;
-
   const contact = await prisma.customerContact.update({
     where: { id: contactId },
     data: { ...rest, email: email || null },
@@ -34,14 +32,12 @@ export async function PUT(
   return NextResponse.json(contact);
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string; contactId: string }> }
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { contactId } = await params;
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const scope = await getSessionScope();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!scope.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const { contactId } = await params;
   await prisma.customerContact.delete({ where: { id: contactId } });
   return NextResponse.json({ success: true });
 }

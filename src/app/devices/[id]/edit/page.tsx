@@ -1,28 +1,42 @@
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/requireAuth";
-import { notFound } from "next/navigation";
+import { getSessionScope } from "@/lib/sessionScope";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { DeviceForm } from "@/components/devices/DeviceForm";
 
 export default async function EditDevicePage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAuth();
+  const scope = await getSessionScope();
+  if (!scope) redirect("/login");
+  if (scope.isViewer) redirect("/devices");
+
   const { id } = await params;
 
   const [device, allDevices, allCustomers] = await Promise.all([
     prisma.device.findUnique({ where: { id } }),
     prisma.device.findMany({
-      where: { id: { not: id } },
+      where: {
+        id: { not: id },
+        ...(scope.customerId ? { customerId: scope.customerId } : {}),
+      },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    prisma.customer.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+    scope.customerId
+      ? prisma.customer.findMany({
+          where: { id: scope.customerId },
+          select: { id: true, name: true },
+        })
+      : prisma.customer.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        }),
   ]);
 
   if (!device) notFound();
+
+  // Scoped users can only edit devices belonging to their customer
+  if (scope.customerId && device.customerId !== scope.customerId) notFound();
 
   return (
     <div className="p-6 max-w-3xl">

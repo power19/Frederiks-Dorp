@@ -1,12 +1,17 @@
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/requireAuth";
+import { getSessionScope } from "@/lib/sessionScope";
+import { redirect } from "next/navigation";
 import { TopologyClient } from "@/components/topology/TopologyClient";
 
 export default async function TopologyPage() {
-  await requireAuth();
+  const scope = await getSessionScope();
+  if (!scope) redirect("/login");
+
+  const customerFilter = scope.customerId ? { customerId: scope.customerId } : {};
 
   const [devices, customers] = await Promise.all([
     prisma.device.findMany({
+      where: Object.keys(customerFilter).length ? customerFilter : undefined,
       select: {
         id: true, name: true, type: true, status: true,
         ipAddress: true, macAddress: true, manufacturer: true,
@@ -26,10 +31,15 @@ export default async function TopologyPage() {
       },
       orderBy: { name: "asc" },
     }),
-    prisma.customer.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+    scope.customerId
+      ? prisma.customer.findMany({
+          where: { id: scope.customerId },
+          select: { id: true, name: true },
+        })
+      : prisma.customer.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        }),
   ]);
 
   return <TopologyClient devices={devices} customers={customers} />;

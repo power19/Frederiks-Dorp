@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/requireAuth";
+import { getSessionScope } from "@/lib/sessionScope";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { StatusBadge } from "@/components/devices/StatusBadge";
@@ -14,15 +15,20 @@ interface SearchParams {
 }
 
 export default async function DevicesPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  await requireAuth();
+  const scope = await getSessionScope();
+  if (!scope) redirect("/login");
+
   const sp = await searchParams;
+
+  // Scoped users are always locked to their customer; admins can filter optionally
+  const scopedCustomerId = scope.customerId ?? sp.customerId ?? null;
 
   const [devices, customers] = await Promise.all([
     prisma.device.findMany({
       where: {
-        ...(sp.type && { type: sp.type as DeviceType }),
-        ...(sp.status && { status: sp.status as DeviceStatus }),
-        ...(sp.customerId && { customerId: sp.customerId }),
+        ...(sp.type       && { type: sp.type as DeviceType }),
+        ...(sp.status     && { status: sp.status as DeviceStatus }),
+        ...(scopedCustomerId && { customerId: scopedCustomerId }),
         ...(sp.search && {
           OR: [
             { name: { contains: sp.search } },
@@ -40,7 +46,10 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
       },
       orderBy: { name: "asc" },
     }),
-    prisma.customer.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    // Only admins see the customer filter dropdown
+    scope.isAdmin
+      ? prisma.customer.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } })
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -50,13 +59,15 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
           <h2 className="text-xl font-bold text-slate-900">Devices</h2>
           <p className="text-slate-500 text-sm">{devices.length} device{devices.length !== 1 ? "s" : ""} found</p>
         </div>
-        <Link
-          href="/devices/new"
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-        >
-          <Plus size={15} />
-          Add Device
-        </Link>
+        {!scope.isViewer && (
+          <Link
+            href="/devices/new"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <Plus size={15} />
+            Add Device
+          </Link>
+        )}
       </div>
 
       {/* Filters */}
@@ -67,11 +78,8 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
           placeholder="Search name, IP, location…"
           className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
-        <select
-          name="type"
-          defaultValue={sp.type ?? ""}
-          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <select name="type" defaultValue={sp.type ?? ""}
+          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">All Types</option>
           <option value="SWITCH">Switch</option>
           <option value="ROUTER">Router</option>
@@ -81,36 +89,29 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
           <option value="STARLINK">Starlink</option>
           <option value="PATCH_PANEL">Patch Panel</option>
         </select>
-        <select
-          name="status"
-          defaultValue={sp.status ?? ""}
-          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
+        <select name="status" defaultValue={sp.status ?? ""}
+          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">All Statuses</option>
           <option value="ACTIVE">Active</option>
           <option value="INACTIVE">Inactive</option>
           <option value="MAINTENANCE">Maintenance</option>
         </select>
-        <select
-          name="customerId"
-          defaultValue={sp.customerId ?? ""}
-          className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">All Customers</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <button
-          type="submit"
-          className="bg-slate-800 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-slate-700 transition-colors"
-        >
+        {/* Customer filter — admins only */}
+        {scope.isAdmin && (
+          <select name="customerId" defaultValue={sp.customerId ?? ""}
+            className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">All Customers</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        )}
+        <button type="submit"
+          className="bg-slate-800 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-slate-700 transition-colors">
           Filter
         </button>
         {(sp.type || sp.status || sp.search || sp.customerId) && (
-          <Link href="/devices" className="text-slate-500 hover:text-slate-700 text-sm py-1.5">
-            Clear
-          </Link>
+          <Link href="/devices" className="text-slate-500 hover:text-slate-700 text-sm py-1.5">Clear</Link>
         )}
       </form>
 
@@ -119,9 +120,11 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
         {devices.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-slate-400">No devices found.</p>
-            <Link href="/devices/new" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
-              Add your first device →
-            </Link>
+            {!scope.isViewer && (
+              <Link href="/devices/new" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
+                Add your first device →
+              </Link>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -134,7 +137,7 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Location</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Status</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600">Connected To</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600">Customer</th>
+                  {scope.isAdmin && <th className="text-left px-4 py-3 font-semibold text-slate-600">Customer</th>}
                   <th className="text-left px-4 py-3 font-semibold text-slate-600"></th>
                 </tr>
               </thead>
@@ -142,39 +145,26 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
                 {devices.map((device) => (
                   <tr key={device.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 font-medium text-slate-900">
-                      <Link href={`/devices/${device.id}`} className="hover:text-blue-600">
-                        {device.name}
-                      </Link>
+                      <Link href={`/devices/${device.id}`} className="hover:text-blue-600">{device.name}</Link>
                     </td>
-                    <td className="px-4 py-3">
-                      <DeviceTypeBadge type={device.type} />
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 font-mono text-xs">
-                      {device.ipAddress ?? "—"}
-                    </td>
+                    <td className="px-4 py-3"><DeviceTypeBadge type={device.type} /></td>
+                    <td className="px-4 py-3 text-slate-600 font-mono text-xs">{device.ipAddress ?? "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{device.location ?? "—"}</td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={device.status} />
-                    </td>
+                    <td className="px-4 py-3"><StatusBadge status={device.status} /></td>
                     <td className="px-4 py-3 text-slate-500 text-xs">
                       {device.parent ? (
-                        <Link href={`/devices/${device.parent.id}`} className="hover:text-blue-600">
-                          {device.parent.name}
-                        </Link>
+                        <Link href={`/devices/${device.parent.id}`} className="hover:text-blue-600">{device.parent.name}</Link>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">
-                      {device.customer ? (
-                        <Link href={`/customers/${device.customer.id}`} className="hover:text-blue-600">
-                          {device.customer.name}
-                        </Link>
-                      ) : "—"}
-                    </td>
+                    {scope.isAdmin && (
+                      <td className="px-4 py-3 text-slate-500 text-xs">
+                        {device.customer ? (
+                          <Link href={`/customers/${device.customer.id}`} className="hover:text-blue-600">{device.customer.name}</Link>
+                        ) : "—"}
+                      </td>
+                    )}
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/devices/${device.id}`}
-                        className="text-blue-600 hover:text-blue-700 text-xs font-medium"
-                      >
+                      <Link href={`/devices/${device.id}`} className="text-blue-600 hover:text-blue-700 text-xs font-medium">
                         View →
                       </Link>
                     </td>

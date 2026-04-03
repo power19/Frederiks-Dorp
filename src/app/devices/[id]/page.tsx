@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/requireAuth";
-import { notFound } from "next/navigation";
+import { getSessionScope } from "@/lib/sessionScope";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Edit2, MapPin } from "lucide-react";
 import { StatusBadge } from "@/components/devices/StatusBadge";
@@ -12,7 +12,9 @@ import { PatchPanelPorts } from "@/components/devices/PatchPanelPorts";
 import { format } from "date-fns";
 
 export default async function DeviceDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireAuth();
+  const scope = await getSessionScope();
+  if (!scope) redirect("/login");
+
   const { id } = await params;
 
   const device = await prisma.device.findUnique({
@@ -27,6 +29,9 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
   });
 
   if (!device) notFound();
+
+  // Scoped users can only view devices belonging to their customer
+  if (scope.customerId && device.customerId !== scope.customerId) notFound();
 
   const fields = [
     ["Name", device.name],
@@ -58,20 +63,25 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
             <StatusBadge status={device.status} />
           </div>
         </div>
-        <div className="flex gap-2">
-          {device.ipAddress && <PingButton deviceId={device.id} />}
-          <Link
-            href={`/devices/${device.id}/edit`}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-lg transition-colors"
-          >
-            <Edit2 size={14} /> Edit
-          </Link>
-          <DeleteDeviceButton deviceId={device.id} deviceName={device.name} />
-        </div>
+        {/* Hide edit/delete for viewers */}
+        {!scope.isViewer && (
+          <div className="flex gap-2">
+            {device.ipAddress && <PingButton deviceId={device.id} />}
+            <Link
+              href={`/devices/${device.id}/edit`}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm rounded-lg transition-colors"
+            >
+              <Edit2 size={14} /> Edit
+            </Link>
+            <DeleteDeviceButton deviceId={device.id} deviceName={device.name} />
+          </div>
+        )}
+        {scope.isViewer && device.ipAddress && (
+          <PingButton deviceId={device.id} />
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Device info */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <h3 className="font-semibold text-slate-800 mb-4">Device Information</h3>
@@ -151,7 +161,6 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
           )}
         </div>
 
-        {/* Changelog */}
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h3 className="font-semibold text-slate-800 mb-4">Change History</h3>
           <ChangelogList entries={device.changelog as never} />

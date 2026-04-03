@@ -1,3 +1,4 @@
+import dagre from "dagre";
 import { DeviceStatus, DeviceType } from "@/generated/prisma";
 import { TopologyEdge, TopologyNode } from "@/types";
 
@@ -51,6 +52,11 @@ interface DeviceNode {
   ports?: PatchPort[];
 }
 
+// Node dimensions used for dagre spacing
+const NODE_WIDTH = 200;
+const NODE_HEIGHT = 80;
+const PATCH_PANEL_HEIGHT = 160; // taller for port grid
+
 export function buildTopologyGraph(
   devices: DeviceNode[],
   customerIndex: Map<string, number>
@@ -61,70 +67,8 @@ export function buildTopologyGraph(
   const nodeMap = new Map<string, DeviceNode>();
   devices.forEach((d) => nodeMap.set(d.id, d));
 
-  // Build children map
-  const childrenMap = new Map<string | null, string[]>();
-  devices.forEach((d) => {
-    const key = d.parentId ?? null;
-    if (!childrenMap.has(key)) childrenMap.set(key, []);
-    childrenMap.get(key)!.push(d.id);
-  });
-
-  // Assign positions using BFS tree layout
-  const levelWidth = 220;
-  const levelHeight = 160;
-
-  const positions = new Map<string, { x: number; y: number }>();
-
-  function assignPositions(ids: string[], depth: number, xOffset: number): number {
-    let currentX = xOffset;
-    for (const id of ids) {
-      const children = childrenMap.get(id) ?? [];
-      const subtreeWidth = Math.max(1, children.length) * levelWidth;
-      const centerX = currentX + subtreeWidth / 2 - levelWidth / 2;
-      positions.set(id, { x: centerX, y: depth * levelHeight });
-      if (children.length > 0) assignPositions(children, depth + 1, currentX);
-      currentX += subtreeWidth;
-    }
-    return currentX;
-  }
-
-  const roots = childrenMap.get(null) ?? [];
-  assignPositions(roots, 0, 0);
-
-  // Devices with no position yet (orphaned)
-  let orphanX = 0;
-  devices.forEach((d) => {
-    if (!positions.has(d.id)) {
-      positions.set(d.id, { x: orphanX, y: -levelHeight });
-      orphanX += levelWidth;
-    }
-  });
-
-  const nodes: TopologyNode[] = devices.map((d) => ({
-    id: d.id,
-    type: d.type === "PATCH_PANEL" ? "patchPanelNode" : "deviceNode",
-    position: positions.get(d.id)!,
-    data: {
-      label: d.name,
-      deviceType: d.type,
-      status: d.status,
-      ipAddress: d.ipAddress ?? null,
-      macAddress: d.macAddress ?? null,
-      manufacturer: d.manufacturer ?? null,
-      model: d.model ?? null,
-      serialNumber: d.serialNumber ?? null,
-      location: d.location ?? null,
-      notes: d.notes ?? null,
-      deviceId: d.id,
-      customerId: d.customerId ?? null,
-      customerName: d.customer?.name ?? null,
-      customerColor: getCustomerColor(d.customerId ?? null, customerIndex),
-      locationName: d.assignedLocation?.name ?? null,
-      ports: d.ports ?? [],
-    },
-  }));
-
-  const edges: TopologyEdge[] = devices
+  // Valid edges (parent must exist in the filtered set)
+  const validEdges: TopologyEdge[] = devices
     .filter((d) => d.parentId && nodeMap.has(d.parentId))
     .map((d) => ({
       id: `e-${d.parentId}-${d.id}`,
@@ -133,5 +77,57 @@ export function buildTopologyGraph(
       animated: d.status === "ACTIVE",
     }));
 
-  return { nodes, edges };
+  // Build dagre graph for automatic layout
+  const g = new dagre.graphlib.Graph();
+  g.setDefaultEdgeLabel(() => ({}));
+  g.setGraph({
+    rankdir: "TB",   // top-to-bottom hierarchy
+    ranksep: 80,     // vertical gap between levels
+    nodesep: 40,     // horizontal gap between siblings
+    marginx: 40,
+    marginy: 40,
+  });
+
+  devices.forEach((d) => {
+    const height = d.type === "PATCH_PANEL" ? PATCH_PANEL_HEIGHT : NODE_HEIGHT;
+    g.setNode(d.id, { width: NODE_WIDTH, height });
+  });
+
+  validEdges.forEach((e) => {
+    g.setEdge(e.source, e.target);
+  });
+
+  dagre.layout(g);
+
+  const nodes: TopologyNode[] = devices.map((d) => {
+    const pos = g.node(d.id);
+    return {
+      id: d.id,
+      type: d.type === "PATCH_PANEL" ? "patchPanelNode" : "deviceNode",
+      position: {
+        x: pos.x - NODE_WIDTH / 2,
+        y: pos.y - (d.type === "PATCH_PANEL" ? PATCH_PANEL_HEIGHT : NODE_HEIGHT) / 2,
+      },
+      data: {
+        label: d.name,
+        deviceType: d.type,
+        status: d.status,
+        ipAddress: d.ipAddress ?? null,
+        macAddress: d.macAddress ?? null,
+        manufacturer: d.manufacturer ?? null,
+        model: d.model ?? null,
+        serialNumber: d.serialNumber ?? null,
+        location: d.location ?? null,
+        notes: d.notes ?? null,
+        deviceId: d.id,
+        customerId: d.customerId ?? null,
+        customerName: d.customer?.name ?? null,
+        customerColor: getCustomerColor(d.customerId ?? null, customerIndex),
+        locationName: d.assignedLocation?.name ?? null,
+        ports: d.ports ?? [],
+      },
+    };
+  });
+
+  return { nodes, edges: validEdges };
 }

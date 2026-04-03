@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionScope } from "@/lib/sessionScope";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
@@ -10,13 +9,17 @@ const updateSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+type Params = { params: Promise<{ id: string }> };
+
+export async function GET(_req: NextRequest, { params }: Params) {
+  const scope = await getSessionScope();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { id } = await params;
+
+  // Scoped users can only view their own customer
+  if (scope.customerId && scope.customerId !== id)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const customer = await prisma.customer.findUnique({
     where: { id },
@@ -26,6 +29,7 @@ export async function GET(
         orderBy: { name: "asc" },
       },
       contacts: { orderBy: { createdAt: "asc" } },
+      locations: { orderBy: { name: "asc" } },
     },
   });
 
@@ -33,12 +37,12 @@ export async function GET(
   return NextResponse.json(customer);
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function PUT(req: NextRequest, { params }: Params) {
+  const scope = await getSessionScope();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Only global admins can edit customer info
+  if (!scope.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const { id } = await params;
 
   const body = await req.json();
@@ -49,14 +53,13 @@ export async function PUT(
   return NextResponse.json(customer);
 }
 
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id } = await params;
+export async function DELETE(_req: NextRequest, { params }: Params) {
+  const scope = await getSessionScope();
+  if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Only global admins can delete customers
+  if (!scope.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+  const { id } = await params;
   await prisma.customer.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

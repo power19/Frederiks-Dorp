@@ -32,8 +32,13 @@ interface Props {
   customers: Customer[];
 }
 
+const UNASSIGNED = "__unassigned__";
+
 export function TopologyClient({ devices, customers }: Props) {
-  const [selectedCustomerId, setSelectedCustomerId] = useState(customers[0]?.id ?? "");
+  const hasUnassigned = devices.some((d) => !d.customerId);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(
+    customers[0]?.id ?? (hasUnassigned ? UNASSIGNED : "")
+  );
   const [selectedLocationId, setSelectedLocationId] = useState("");
 
   // Build a stable customer → color index
@@ -62,7 +67,11 @@ export function TopologyClient({ devices, customers }: Props) {
   // Filter devices
   const filtered = useMemo(() => {
     return devices.filter((d) => {
-      if (selectedCustomerId && d.customerId !== selectedCustomerId) return false;
+      if (selectedCustomerId === UNASSIGNED) {
+        if (d.customerId !== null) return false;
+      } else if (selectedCustomerId) {
+        if (d.customerId !== selectedCustomerId) return false;
+      }
       if (selectedLocationId && d.locationId !== selectedLocationId) return false;
       return true;
     });
@@ -83,7 +92,9 @@ export function TopologyClient({ devices, customers }: Props) {
         <div>
           <h2 className="text-xl font-bold text-slate-900">Network Topology</h2>
           <p className="text-slate-500 text-sm">
-            {customers.find((c) => c.id === selectedCustomerId)?.name ?? ""}
+            {selectedCustomerId === UNASSIGNED
+            ? "Unassigned devices"
+            : customers.find((c) => c.id === selectedCustomerId)?.name ?? ""}
             {selectedLocationId
               ? ` · ${locationOptions.find((l) => l.id === selectedLocationId)?.name}`
               : ""}
@@ -103,6 +114,9 @@ export function TopologyClient({ devices, customers }: Props) {
             {customers.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
+            {hasUnassigned && (
+              <option value={UNASSIGNED}>— Unassigned devices —</option>
+            )}
           </select>
 
           {locationOptions.length > 0 && (

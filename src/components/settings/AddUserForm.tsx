@@ -1,17 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+
+type Customer = { id: string; name: string };
 
 export function AddUserForm() {
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", password: "", role: "viewer" });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [form, setForm]         = useState({ name: "", email: "", password: "", role: "viewer", customerId: "" });
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [error, setError]       = useState("");
+  const [success, setSuccess]   = useState("");
+  const [loading, setLoading]   = useState(false);
+
+  useEffect(() => {
+    fetch("/api/customers")
+      .then(r => r.json())
+      .then((data) => setCustomers(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  const needsCustomer = form.role !== "admin";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (needsCustomer && !form.customerId) {
+      setError("Please select a customer for this role.");
+      return;
+    }
     setLoading(true);
     setError("");
     setSuccess("");
@@ -19,17 +35,30 @@ export function AddUserForm() {
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        customerId: needsCustomer ? form.customerId : null,
+      }),
     });
 
     setLoading(false);
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to create user");
+      const raw = data.error;
+      if (typeof raw === "string") {
+        setError(raw);
+      } else if (raw?.fieldErrors) {
+        const first = Object.values(raw.fieldErrors as Record<string, string[]>)[0]?.[0]
+          ?? raw.formErrors?.[0]
+          ?? "Validation error";
+        setError(first);
+      } else {
+        setError(raw?.message ?? "Failed to create user");
+      }
     } else {
       setSuccess("User created successfully");
-      setForm({ name: "", email: "", password: "", role: "viewer" });
+      setForm({ name: "", email: "", password: "", role: "viewer", customerId: "" });
       router.refresh();
     }
   }
@@ -71,6 +100,7 @@ export function AddUserForm() {
           <label className="block text-sm font-medium text-slate-700 mb-1">Password (min 8 chars)</label>
           <input
             type="password"
+            autoComplete="new-password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             className={field}
@@ -82,14 +112,37 @@ export function AddUserForm() {
           <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
           <select
             value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value })}
+            onChange={(e) => setForm({ ...form, role: e.target.value, customerId: "" })}
             className={field}
           >
-            <option value="admin">Admin</option>
-            <option value="editor">Editor</option>
-            <option value="viewer">Viewer</option>
+            <option value="admin">Admin — full global access</option>
+            <option value="manager">Manager — resets team passwords</option>
+            <option value="editor">Editor — add &amp; edit devices</option>
+            <option value="viewer">Viewer — read only</option>
           </select>
         </div>
+
+        {needsCustomer && (
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Customer <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={form.customerId}
+              onChange={(e) => setForm({ ...form, customerId: e.target.value })}
+              className={field}
+              required
+            >
+              <option value="">— Select a customer —</option>
+              {customers.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-500 mt-1">
+              This user will only see data for the selected customer.
+            </p>
+          </div>
+        )}
       </div>
 
       <button
