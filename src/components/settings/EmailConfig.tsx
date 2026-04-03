@@ -85,8 +85,8 @@ export function EmailConfig() {
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">SMTP Username</label>
-            <input type="email" value={cfg.smtp_user ?? ""} onChange={e => setCfg({...cfg, smtp_user: e.target.value})}
-              placeholder="you@gmail.com" className={inputCls} autoComplete="off" />
+            <input type="text" value={cfg.smtp_user ?? ""} onChange={e => setCfg({...cfg, smtp_user: e.target.value})}
+              placeholder="you@gmail.com or resend" className={inputCls} autoComplete="off" />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">SMTP Password</label>
