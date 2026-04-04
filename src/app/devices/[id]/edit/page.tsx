@@ -64,6 +64,8 @@ export default async function EditDevicePage({ params }: { params: Promise<{ id:
             location: device.location ?? undefined,
             status: device.status,
             notes: device.notes ?? undefined,
+            wirelessMode: device.wirelessMode ?? undefined,
+            frequency: device.frequency ?? undefined,
             parentId: device.parentId ?? undefined,
             latitude: device.latitude ?? undefined,
             longitude: device.longitude ?? undefined,
