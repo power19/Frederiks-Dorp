@@ -12,6 +12,8 @@ type Port = {
   notes: string | null;
 };
 
+type Device = { id: string; name: string; type: string | null };
+
 type PortForm = {
   portNumber: string;
   label: string;
@@ -26,6 +28,7 @@ const CABLE_TYPES = ["Cat5e", "Cat6", "Cat6A", "Cat7", "Fibre", "Coax", "Other"]
 
 export function PatchPanelPorts({ deviceId }: { deviceId: string }) {
   const [ports, setPorts] = useState<Port[]>([]);
+  const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<PortForm>(emptyForm);
@@ -39,7 +42,13 @@ export function PatchPanelPorts({ deviceId }: { deviceId: string }) {
     setLoading(false);
   }, [deviceId]);
 
-  useEffect(() => { loadPorts(); }, [loadPorts]);
+  useEffect(() => {
+    loadPorts();
+    fetch("/api/devices?limit=500")
+      .then(r => r.json())
+      .then(d => setDevices(Array.isArray(d.devices) ? d.devices : Array.isArray(d) ? d : []))
+      .catch(() => {});
+  }, [loadPorts]);
 
   async function addPort() {
     if (!addForm.portNumber) return;
@@ -131,7 +140,12 @@ export function PatchPanelPorts({ deviceId }: { deviceId: string }) {
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Connected To</label>
-              <input value={addForm.connectedTo} onChange={e => setAddForm(f => ({ ...f, connectedTo: e.target.value }))} className={inputCls} placeholder="SW-Main-01 port 3" />
+              <select value={addForm.connectedTo} onChange={e => setAddForm(f => ({ ...f, connectedTo: e.target.value }))} className={inputCls}>
+                <option value="">— Select device —</option>
+                {devices.filter(d => d.id !== deviceId).map(d => (
+                  <option key={d.id} value={d.name}>{d.name}{d.type ? ` (${d.type})` : ""}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="text-xs text-slate-500 mb-1 block">Cable Type</label>
@@ -177,7 +191,12 @@ export function PatchPanelPorts({ deviceId }: { deviceId: string }) {
                     </div>
                     <div>
                       <label className="text-xs text-slate-500 mb-1 block">Connected To</label>
-                      <input value={editForm.connectedTo} onChange={e => setEditForm(f => ({ ...f, connectedTo: e.target.value }))} className={inputCls} />
+                      <select value={editForm.connectedTo} onChange={e => setEditForm(f => ({ ...f, connectedTo: e.target.value }))} className={inputCls}>
+                        <option value="">— Select device —</option>
+                        {devices.filter(d => d.id !== deviceId).map(d => (
+                          <option key={d.id} value={d.name}>{d.name}{d.type ? ` (${d.type})` : ""}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className="text-xs text-slate-500 mb-1 block">Cable Type</label>
