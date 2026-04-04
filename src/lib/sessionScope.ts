@@ -8,20 +8,26 @@ export type SessionScope = {
   userId: string;
   role: string;
   isAdmin: boolean;
+  isReseller: boolean; // owns a set of customers, can manage them
   isManager: boolean;  // customer-level admin — can reset team passwords
   isViewer: boolean;   // read-only
-  /** null = admin sees all; string = scoped to this customer only */
+  /** null = admin/reseller sees multiple; string = scoped to this customer only */
   customerId: string | null;
+  /** set when role === "reseller"; used to filter customers */
+  resellerId: string | null;
 };
 
 function buildScope(role: string, userId: string, customerId: string | null): SessionScope {
+  const isReseller = role === "reseller";
   return {
     userId,
     role,
-    isAdmin:   role === "admin",
-    isManager: role === "manager",
-    isViewer:  role === "viewer",
-    customerId: role === "admin" ? null : customerId ?? null,
+    isAdmin:    role === "admin",
+    isReseller,
+    isManager:  role === "manager",
+    isViewer:   role === "viewer",
+    customerId: (role === "admin" || isReseller) ? null : customerId ?? null,
+    resellerId: isReseller ? userId : null,
   };
 }
 

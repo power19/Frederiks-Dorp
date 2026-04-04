@@ -25,13 +25,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(customer ? [customer] : []);
   }
 
+  // Resellers only see their own customers
+  const resellerFilter = scope.resellerId ? { resellerId: scope.resellerId } : undefined;
+
   const customers = await prisma.customer.findMany({
-    where: search ? {
-      OR: [
-        { name: { contains: search } },
-        { contacts: { some: { name: { contains: search } } } },
-      ],
-    } : undefined,
+    where: {
+      ...resellerFilter,
+      ...(search ? {
+        OR: [
+          { name: { contains: search } },
+          { contacts: { some: { name: { contains: search } } } },
+        ],
+      } : {}),
+    },
     include: { _count: { select: { devices: true } } },
     orderBy: { name: "asc" },
   });
@@ -41,12 +47,19 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const scope = await getSessionScope();
-  if (!scope || !scope.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!scope || (!scope.isAdmin && !scope.isReseller))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = customerSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const customer = await prisma.customer.create({ data: parsed.data });
+  const customer = await prisma.customer.create({
+    data: {
+      ...parsed.data,
+      // Resellers automatically own the customers they create
+      ...(scope.isReseller && { resellerId: scope.userId }),
+    },
+  });
   return NextResponse.json(customer, { status: 201 });
 }

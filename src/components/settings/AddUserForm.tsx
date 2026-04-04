@@ -7,6 +7,7 @@ type Customer = { id: string; name: string };
 
 export function AddUserForm() {
   const router = useRouter();
+  const [currentRole, setCurrentRole] = useState<string>("");
   const [form, setForm]         = useState({ name: "", email: "", role: "viewer", customerId: "" });
   const [createdPassword, setCreatedPassword] = useState<{ password: string; emailSent: boolean } | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -19,9 +20,13 @@ export function AddUserForm() {
       .then(r => r.json())
       .then((data) => setCustomers(Array.isArray(data) ? data : []))
       .catch(() => {});
+    fetch("/api/auth/session")
+      .then(r => r.json())
+      .then(s => setCurrentRole(s?.user?.role ?? ""))
+      .catch(() => {});
   }, []);
 
-  const needsCustomer = form.role !== "admin";
+  const needsCustomer = !["admin", "reseller"].includes(form.role);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -114,7 +119,12 @@ export function AddUserForm() {
             onChange={(e) => setForm({ ...form, role: e.target.value, customerId: "" })}
             className={field}
           >
-            <option value="admin">Admin — full global access</option>
+            {currentRole === "admin" && (
+              <>
+                <option value="admin">Admin — full global access</option>
+                <option value="reseller">Reseller — manages their own customers</option>
+              </>
+            )}
             <option value="manager">Manager — resets team passwords</option>
             <option value="editor">Editor — add &amp; edit devices</option>
             <option value="viewer">Viewer — read only</option>

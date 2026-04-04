@@ -15,10 +15,11 @@ type User = {
 type Customer = { id: string; name: string };
 
 const ROLE_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-  admin:   { label: "Admin",   icon: <Shield size={11} />,  color: "bg-blue-100 text-blue-700" },
-  manager: { label: "Manager", icon: <UserCog size={11} />, color: "bg-purple-100 text-purple-700" },
-  editor:  { label: "Editor",  icon: <Pencil size={11} />,  color: "bg-emerald-100 text-emerald-700" },
-  viewer:  { label: "Viewer",  icon: <Eye size={11} />,     color: "bg-slate-100 text-slate-600" },
+  admin:    { label: "Admin",    icon: <Shield size={11} />,  color: "bg-blue-100 text-blue-700" },
+  reseller: { label: "Reseller", icon: <Shield size={11} />,  color: "bg-orange-100 text-orange-700" },
+  manager:  { label: "Manager",  icon: <UserCog size={11} />, color: "bg-purple-100 text-purple-700" },
+  editor:   { label: "Editor",   icon: <Pencil size={11} />,  color: "bg-emerald-100 text-emerald-700" },
+  viewer:   { label: "Viewer",   icon: <Eye size={11} />,     color: "bg-slate-100 text-slate-600" },
 };
 
 export function UserRow({
@@ -142,6 +143,7 @@ export function UserRow({
             className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 shrink-0"
           >
             <option value="admin">Admin</option>
+            <option value="reseller">Reseller</option>
             <option value="manager">Manager</option>
             <option value="editor">Editor</option>
             <option value="viewer">Viewer</option>

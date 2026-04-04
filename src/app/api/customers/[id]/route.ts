@@ -11,14 +11,23 @@ const updateSchema = z.object({
 
 type Params = { params: Promise<{ id: string }> };
 
+async function checkCustomerAccess(id: string, scope: Awaited<ReturnType<typeof getSessionScope>>) {
+  if (!scope) return false;
+  if (scope.customerId && scope.customerId !== id) return false;
+  if (scope.isReseller) {
+    const c = await prisma.customer.findUnique({ where: { id }, select: { resellerId: true } });
+    if (c?.resellerId !== scope.userId) return false;
+  }
+  return true;
+}
+
 export async function GET(_req: NextRequest, { params }: Params) {
   const scope = await getSessionScope();
   if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
 
-  // Scoped users can only view their own customer
-  if (scope.customerId && scope.customerId !== id)
+  if (!await checkCustomerAccess(id, scope))
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const customer = await prisma.customer.findUnique({
@@ -40,10 +49,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
 export async function PUT(req: NextRequest, { params }: Params) {
   const scope = await getSessionScope();
   if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  // Only global admins can edit customer info
-  if (!scope.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!scope.isAdmin && !scope.isReseller)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+
+  if (!await checkCustomerAccess(id, scope))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
   const parsed = updateSchema.safeParse(body);
@@ -56,10 +68,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
 export async function DELETE(_req: NextRequest, { params }: Params) {
   const scope = await getSessionScope();
   if (!scope) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  // Only global admins can delete customers
-  if (!scope.isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!scope.isAdmin && !scope.isReseller)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { id } = await params;
+
+  if (!await checkCustomerAccess(id, scope))
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   await prisma.customer.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

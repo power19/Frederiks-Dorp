@@ -35,6 +35,14 @@ export async function GET(req: NextRequest) {
   const search = searchParams.get("search");
   // Scoped users are always filtered to their customer; admins can filter optionally
   const customerId = scope.customerId ?? searchParams.get("customerId");
+
+  // Resellers see devices across all their customers
+  const resellerCustomerIds = scope.resellerId
+    ? (await prisma.customer.findMany({
+        where: { resellerId: scope.resellerId },
+        select: { id: true },
+      })).map(c => c.id)
+    : null;
   const page = parseInt(searchParams.get("page") ?? "1");
   const limit = parseInt(searchParams.get("limit") ?? "50");
 
@@ -43,6 +51,7 @@ export async function GET(req: NextRequest) {
     ...(status && { status }),
     ...(location && { location: { contains: location } }),
     ...(customerId && { customerId }),
+    ...(resellerCustomerIds && !customerId && { customerId: { in: resellerCustomerIds } }),
     ...(search && {
       OR: [
         { name: { contains: search } },
