@@ -26,7 +26,7 @@ const emptyForm: PortForm = { portNumber: "", label: "", connectedTo: "", cableT
 
 const CABLE_TYPES = ["Cat5e", "Cat6", "Cat6A", "Cat7", "Fibre", "Coax", "Other"];
 
-export function PatchPanelPorts({ deviceId }: { deviceId: string }) {
+export function PatchPanelPorts({ deviceId, customerId }: { deviceId: string; customerId?: string }) {
   const [ports, setPorts] = useState<Port[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,9 @@ export function PatchPanelPorts({ deviceId }: { deviceId: string }) {
 
   useEffect(() => {
     loadPorts();
-    fetch("/api/devices?limit=500")
+    const params = new URLSearchParams({ limit: "500" });
+    if (customerId) params.set("customerId", customerId);
+    fetch(`/api/devices?${params}`)
       .then(r => r.json())
       .then(d => setDevices(Array.isArray(d.devices) ? d.devices : Array.isArray(d) ? d : []))
       .catch(() => {});

@@ -157,7 +157,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
           )}
 
           {device.type === "PATCH_PANEL" && (
-            <PatchPanelPorts deviceId={device.id} />
+            <PatchPanelPorts deviceId={device.id} customerId={device.customerId ?? undefined} />
           )}
         </div>
 
