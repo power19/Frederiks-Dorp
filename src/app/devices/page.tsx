@@ -23,12 +23,17 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
   // Scoped users are always locked to their customer; admins can filter optionally
   const scopedCustomerId = scope.customerId ?? sp.customerId ?? null;
 
+  const resellerFilter = !scopedCustomerId && scope.resellerId
+    ? { customer: { resellerId: scope.resellerId } }
+    : {};
+
   const [devices, customers] = await Promise.all([
     prisma.device.findMany({
       where: {
         ...(sp.type       && { type: sp.type as DeviceType }),
         ...(sp.status     && { status: sp.status as DeviceStatus }),
         ...(scopedCustomerId && { customerId: scopedCustomerId }),
+        ...resellerFilter,
         ...(sp.search && {
           OR: [
             { name: { contains: sp.search } },
@@ -46,9 +51,11 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
       },
       orderBy: { name: "asc" },
     }),
-    // Only admins see the customer filter dropdown
+    // Admins and resellers see the customer filter dropdown
     scope.isAdmin
       ? prisma.customer.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } })
+      : scope.isReseller
+      ? prisma.customer.findMany({ where: { resellerId: scope.resellerId! }, select: { id: true, name: true }, orderBy: { name: "asc" } })
       : Promise.resolve([]),
   ]);
 

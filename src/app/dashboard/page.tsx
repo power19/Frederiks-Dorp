@@ -10,17 +10,24 @@ export default async function DashboardPage() {
   if (!scope) redirect("/login");
 
   // Scoped users only see their customer's data
-  const customerFilter = scope.customerId ? { customerId: scope.customerId } : {};
-  const deviceWhere = Object.keys(customerFilter).length ? customerFilter : undefined;
+  const deviceWhere = scope.customerId
+    ? { customerId: scope.customerId }
+    : scope.resellerId
+    ? { customer: { resellerId: scope.resellerId } }
+    : undefined;
+
+  const changelogWhere = scope.customerId
+    ? { device: { customerId: scope.customerId } }
+    : scope.resellerId
+    ? { device: { customer: { resellerId: scope.resellerId } } }
+    : undefined;
 
   const [totalDevices, byStatus, byType, recentChanges] = await Promise.all([
     prisma.device.count({ where: deviceWhere }),
     prisma.device.groupBy({ by: ["status"], where: deviceWhere, _count: { _all: true } }),
     prisma.device.groupBy({ by: ["type"],   where: deviceWhere, _count: { _all: true } }),
     prisma.changelogEntry.findMany({
-      where: scope.customerId
-        ? { device: { customerId: scope.customerId } }
-        : undefined,
+      where: changelogWhere,
       orderBy: { createdAt: "desc" },
       take: 10,
       include: { device: { select: { id: true, name: true } } },

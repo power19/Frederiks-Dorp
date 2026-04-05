@@ -7,11 +7,15 @@ export default async function TopologyPage() {
   const scope = await getSessionScope();
   if (!scope) redirect("/login");
 
-  const customerFilter = scope.customerId ? { customerId: scope.customerId } : {};
+  const deviceWhere = scope.customerId
+    ? { customerId: scope.customerId }
+    : scope.resellerId
+    ? { customer: { resellerId: scope.resellerId } }
+    : {};
 
   const [devices, customers] = await Promise.all([
     prisma.device.findMany({
-      where: Object.keys(customerFilter).length ? customerFilter : undefined,
+      where: Object.keys(deviceWhere).length ? deviceWhere : undefined,
       select: {
         id: true, name: true, type: true, status: true,
         ipAddress: true, macAddress: true, manufacturer: true,
@@ -31,15 +35,15 @@ export default async function TopologyPage() {
       },
       orderBy: { name: "asc" },
     }),
-    scope.customerId
-      ? prisma.customer.findMany({
-          where: { id: scope.customerId },
-          select: { id: true, name: true },
-        })
-      : prisma.customer.findMany({
-          select: { id: true, name: true },
-          orderBy: { name: "asc" },
-        }),
+    prisma.customer.findMany({
+      where: scope.customerId
+        ? { id: scope.customerId }
+        : scope.resellerId
+        ? { resellerId: scope.resellerId }
+        : {},
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   return <TopologyClient devices={devices} customers={customers} />;
