@@ -39,7 +39,7 @@ export async function GET(
       parent: { select: { id: true, name: true } },
       children: { select: { id: true, name: true, type: true, status: true } },
       changelog: { orderBy: { createdAt: "desc" }, take: 50 },
-      customer: { select: { id: true, name: true } },
+      customer: { select: { id: true, name: true, resellerId: true } },
       assignedLocation: { select: { id: true, name: true, customerId: true } },
       ports: { orderBy: { portNumber: "asc" } },
     },
@@ -49,6 +49,10 @@ export async function GET(
 
   // Scoped users can only see devices belonging to their customer
   if (scope.customerId && device.customerId !== scope.customerId)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Resellers can only see devices belonging to their customers
+  if (scope.resellerId && (device.customer as { resellerId?: string | null } | null)?.resellerId !== scope.resellerId)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json(device);
@@ -64,11 +68,18 @@ export async function PUT(
 
   const { id } = await params;
 
-  const existing = await prisma.device.findUnique({ where: { id } });
+  const existing = await prisma.device.findUnique({
+    where: { id },
+    include: { customer: { select: { resellerId: true } } },
+  });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Scoped users can only edit devices in their customer
   if (scope.customerId && existing.customerId !== scope.customerId)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // Resellers can only edit devices belonging to their customers
+  if (scope.resellerId && existing.customer?.resellerId !== scope.resellerId)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const body = await req.json();
@@ -121,11 +132,18 @@ export async function DELETE(
 
   const { id } = await params;
 
-  const device = await prisma.device.findUnique({ where: { id } });
+  const device = await prisma.device.findUnique({
+    where: { id },
+    include: { customer: { select: { resellerId: true } } },
+  });
   if (!device) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   // Scoped users can only delete devices in their customer
   if (scope.customerId && device.customerId !== scope.customerId)
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  // Resellers can only delete devices belonging to their customers
+  if (scope.resellerId && device.customer?.resellerId !== scope.resellerId)
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   await prisma.device.delete({ where: { id } });

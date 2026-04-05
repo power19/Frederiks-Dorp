@@ -34,7 +34,7 @@ export default async function NewDevicePage({
   const [allDevices, allCustomers] = await Promise.all([
     prisma.device.findMany({
       where: deviceWhere,
-      select: { id: true, name: true },
+      select: { id: true, name: true, customerId: true },
       orderBy: { name: "asc" },
     }),
     prisma.customer.findMany({

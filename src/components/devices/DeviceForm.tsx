@@ -33,6 +33,7 @@ type FormData = z.infer<typeof schema>;
 interface Device {
   id: string;
   name: string;
+  customerId?: string | null;
 }
 
 interface Customer {
@@ -254,9 +255,11 @@ export function DeviceForm({ defaultValues, deviceId, devices = [], customers = 
           <label className="block text-sm font-medium text-slate-700 mb-1">Connected To (Parent)</label>
           <select {...register("parentId")} className={field}>
             <option value="">— None —</option>
-            {devices.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
+            {devices
+              .filter(d => !selectedCustomerId || d.customerId === selectedCustomerId)
+              .map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
           </select>
         </div>
 

@@ -98,6 +98,13 @@ export async function POST(req: NextRequest) {
     ...(scope.customerId && { customerId: scope.customerId }),
   };
 
+  // Resellers can only assign devices to their own customers
+  if (scope.resellerId && data.customerId) {
+    const customer = await prisma.customer.findUnique({ where: { id: data.customerId }, select: { resellerId: true } });
+    if (!customer || customer.resellerId !== scope.resellerId)
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const device = await prisma.device.create({ data });
 
   await prisma.changelogEntry.create({

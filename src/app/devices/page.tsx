@@ -20,10 +20,13 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
 
   const sp = await searchParams;
 
-  // Scoped users are always locked to their customer; admins can filter optionally
-  const scopedCustomerId = scope.customerId ?? sp.customerId ?? null;
+  // Scoped users are always locked to their customer
+  // Admins and resellers can optionally filter by a specific customer
+  // Resellers: always AND with their own resellerId to prevent URL bypass
+  const scopedCustomerId = scope.customerId
+    ?? ((scope.isAdmin || scope.isReseller) ? sp.customerId ?? null : null);
 
-  const resellerFilter = !scopedCustomerId && scope.resellerId
+  const resellerFilter = scope.resellerId
     ? { customer: { resellerId: scope.resellerId } }
     : {};
 
@@ -103,8 +106,8 @@ export default async function DevicesPage({ searchParams }: { searchParams: Prom
           <option value="INACTIVE">Inactive</option>
           <option value="MAINTENANCE">Maintenance</option>
         </select>
-        {/* Customer filter — admins only */}
-        {scope.isAdmin && (
+        {/* Customer filter — admins and resellers */}
+        {(scope.isAdmin || scope.isReseller) && (
           <select name="customerId" defaultValue={sp.customerId ?? ""}
             className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">All Customers</option>

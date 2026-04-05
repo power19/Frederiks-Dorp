@@ -28,7 +28,7 @@ export default async function EditDevicePage({ params }: { params: Promise<{ id:
     prisma.device.findUnique({ where: { id }, include: { customer: true } }),
     prisma.device.findMany({
       where: { id: { not: id }, ...deviceWhere },
-      select: { id: true, name: true },
+      select: { id: true, name: true, customerId: true },
       orderBy: { name: "asc" },
     }),
     prisma.customer.findMany({

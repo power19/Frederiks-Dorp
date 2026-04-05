@@ -23,7 +23,7 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
       parent: { select: { id: true, name: true } },
       children: { select: { id: true, name: true, type: true, status: true } },
       changelog: { orderBy: { createdAt: "desc" }, take: 50 },
-      customer: { select: { id: true, name: true } },
+      customer: { select: { id: true, name: true, resellerId: true } },
       assignedLocation: { select: { id: true, name: true, customerId: true } },
     },
   });
@@ -32,6 +32,9 @@ export default async function DeviceDetailPage({ params }: { params: Promise<{ i
 
   // Scoped users can only view devices belonging to their customer
   if (scope.customerId && device.customerId !== scope.customerId) notFound();
+
+  // Resellers can only view devices belonging to their customers
+  if (scope.resellerId && device.customer?.resellerId !== scope.resellerId) notFound();
 
   const fields = [
     ["Name", device.name],

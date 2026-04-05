@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Edit2, Building2 } from "lucide-react";
 import { StatusBadge } from "@/components/devices/StatusBadge";
@@ -11,9 +11,16 @@ import { LocationManager } from "@/components/customers/LocationManager";
 import { CustomerContacts } from "@/components/customers/CustomerContacts";
 import { CustomerUsers } from "@/components/customers/CustomerUsers";
 import { format } from "date-fns";
+import { getSessionScope } from "@/lib/sessionScope";
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const scope = await getSessionScope();
+  if (!scope) redirect("/login");
+
   const { id } = await params;
+
+  // Customer-scoped users can only view their own customer
+  if (scope.customerId && scope.customerId !== id) notFound();
 
   const customer = await prisma.customer.findUnique({
     where: { id },
@@ -26,6 +33,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   });
 
   if (!customer) notFound();
+
+  // Resellers can only view their own customers
+  if (scope.resellerId && customer.resellerId !== scope.resellerId) notFound();
 
   return (
     <div className="p-6 max-w-5xl space-y-6">
