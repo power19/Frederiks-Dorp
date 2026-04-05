@@ -19,21 +19,29 @@ export default async function NewDevicePage({
   // Scoped users are locked to their own customer
   const effectiveCustomerId = scope.customerId ?? qCustomerId;
 
+  const customerWhere = scope.customerId
+    ? { id: scope.customerId }
+    : scope.resellerId
+    ? { resellerId: scope.resellerId }
+    : {};
+
+  const deviceWhere = scope.customerId
+    ? { customerId: scope.customerId }
+    : scope.resellerId
+    ? { customer: { resellerId: scope.resellerId } }
+    : {};
+
   const [allDevices, allCustomers] = await Promise.all([
     prisma.device.findMany({
-      where: scope.customerId ? { customerId: scope.customerId } : {},
+      where: deviceWhere,
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    scope.customerId
-      ? prisma.customer.findMany({
-          where: { id: scope.customerId },
-          select: { id: true, name: true },
-        })
-      : prisma.customer.findMany({
-          select: { id: true, name: true },
-          orderBy: { name: "asc" },
-        }),
+    prisma.customer.findMany({
+      where: customerWhere,
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   return (

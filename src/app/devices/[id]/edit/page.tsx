@@ -12,31 +12,39 @@ export default async function EditDevicePage({ params }: { params: Promise<{ id:
 
   const { id } = await params;
 
+  const customerWhere = scope.customerId
+    ? { id: scope.customerId }
+    : scope.resellerId
+    ? { resellerId: scope.resellerId }
+    : {};
+
+  const deviceWhere = scope.customerId
+    ? { customerId: scope.customerId }
+    : scope.resellerId
+    ? { customer: { resellerId: scope.resellerId } }
+    : {};
+
   const [device, allDevices, allCustomers] = await Promise.all([
-    prisma.device.findUnique({ where: { id } }),
+    prisma.device.findUnique({ where: { id }, include: { customer: true } }),
     prisma.device.findMany({
-      where: {
-        id: { not: id },
-        ...(scope.customerId ? { customerId: scope.customerId } : {}),
-      },
+      where: { id: { not: id }, ...deviceWhere },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
-    scope.customerId
-      ? prisma.customer.findMany({
-          where: { id: scope.customerId },
-          select: { id: true, name: true },
-        })
-      : prisma.customer.findMany({
-          select: { id: true, name: true },
-          orderBy: { name: "asc" },
-        }),
+    prisma.customer.findMany({
+      where: customerWhere,
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!device) notFound();
 
   // Scoped users can only edit devices belonging to their customer
   if (scope.customerId && device.customerId !== scope.customerId) notFound();
+
+  // Resellers can only edit devices belonging to their customers
+  if (scope.resellerId && device.customer?.resellerId !== scope.resellerId) notFound();
 
   return (
     <div className="p-6 max-w-3xl">
