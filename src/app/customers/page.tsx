@@ -15,14 +15,19 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
 
   const sp = await searchParams;
 
+  const resellerFilter = scope.resellerId ? { resellerId: scope.resellerId } : {};
+
   const customers = await prisma.customer.findMany({
-    where: sp.search ? {
-      OR: [
-        { name: { contains: sp.search } },
-        { contacts: { some: { name: { contains: sp.search } } } },
-        { contacts: { some: { email: { contains: sp.search } } } },
-      ],
-    } : undefined,
+    where: {
+      ...resellerFilter,
+      ...(sp.search ? {
+        OR: [
+          { name: { contains: sp.search } },
+          { contacts: { some: { name: { contains: sp.search } } } },
+          { contacts: { some: { email: { contains: sp.search } } } },
+        ],
+      } : {}),
+    },
     include: {
       _count: { select: { devices: true } },
       contacts: { orderBy: { createdAt: "asc" }, take: 1 },
