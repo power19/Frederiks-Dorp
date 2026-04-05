@@ -50,7 +50,7 @@ export function PatchPanelPorts({ deviceId, customerId }: { deviceId: string; cu
       .then(r => r.json())
       .then(d => setDevices(Array.isArray(d.devices) ? d.devices : Array.isArray(d) ? d : []))
       .catch(() => {});
-  }, [loadPorts]);
+  }, [loadPorts, customerId]);
 
   async function addPort() {
     if (!addForm.portNumber) return;
