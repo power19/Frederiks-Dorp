@@ -5,7 +5,7 @@ import { WipeDataButton } from "@/components/settings/WipeDataButton";
 import { UserRow } from "@/components/settings/UserRow";
 import { EmailConfig } from "@/components/settings/EmailConfig";
 import { WhatsAppConfig } from "@/components/settings/WhatsAppConfig";
-import { Shield, Building2, Users, Mail, MessageCircle } from "lucide-react";
+import { Shield, Building2, Users, Mail, MessageCircle, Store } from "lucide-react";
 
 export default async function SettingsPage() {
   const session = await requireAuth();
@@ -39,17 +39,21 @@ export default async function SettingsPage() {
     isReseller
       ? prisma.customer.findMany({
           where: { resellerId: selfId },
-          select: { id: true, name: true },
+          select: { id: true, name: true, resellerId: true },
           orderBy: { name: "asc" },
         })
       : prisma.customer.findMany({
-          select: { id: true, name: true },
+          select: { id: true, name: true, resellerId: true },
           orderBy: { name: "asc" },
         }),
   ]);
 
   const globalAdmins = users.filter(u => u.role === "admin");
-  const scopedUsers  = users.filter(u => u.role !== "admin");
+  const resellers    = users.filter(u => u.role === "reseller");
+  const scopedUsers  = users.filter(u => u.role !== "admin" && u.role !== "reseller");
+
+  // Map resellerId → reseller name for displaying on customer cards
+  const resellerMap = new Map(resellers.map(r => [r.id, r.name ?? r.email]));
 
   // Group scoped users by customerId
   const byCustomer = new Map<string | null, typeof scopedUsers>();
@@ -88,6 +92,25 @@ export default async function SettingsPage() {
         </div>
       </section>}
 
+      {/* Resellers — only visible to super admin */}
+      {isAdmin && resellers.length > 0 && (
+        <section className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
+            <Store size={15} className="text-orange-500" />
+            <h3 className="font-semibold text-slate-800">Resellers</h3>
+            <span className="ml-auto text-xs text-slate-400">{resellers.length} reseller{resellers.length !== 1 ? "s" : ""}</span>
+          </div>
+          <div className="px-5 divide-y divide-slate-100">
+            {resellers.map(u => (
+              <UserRow key={u.id} user={u} customers={customers} isSelf={u.id === selfId} currentUserRole="admin" />
+            ))}
+          </div>
+          <div className="px-5 py-3 bg-slate-50 border-t border-slate-100">
+            <p className="text-xs text-slate-500">Resellers manage their own customers independently. They cannot see each other&apos;s data.</p>
+          </div>
+        </section>
+      )}
+
       {/* Customer-scoped users — grouped */}
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -112,6 +135,11 @@ export default async function SettingsPage() {
                     {managers.length} manager{managers.length !== 1 ? "s" : ""}
                   </span>
                 )}
+                {isAdmin && customer.resellerId && (
+                  <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                    <Store size={9} /> {resellerMap.get(customer.resellerId) ?? "Reseller"}
+                  </span>
+                )}
                 <span className="ml-auto text-xs text-slate-400">{members.length} user{members.length !== 1 ? "s" : ""}</span>
               </div>
               <div className="px-5 divide-y divide-slate-100">
@@ -127,7 +155,7 @@ export default async function SettingsPage() {
           );
         })}
 
-        {/* Unassigned non-admin users */}
+        {/* Unassigned non-admin, non-reseller users */}
         {(byCustomer.get(null)?.length ?? 0) > 0 && (
           <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden">
             <div className="px-5 py-3 border-b border-amber-100 flex items-center gap-2 bg-amber-50">

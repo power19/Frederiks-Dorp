@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSessionScope } from "@/lib/sessionScope";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Plus, Building2 } from "lucide-react";
+import { Plus, Building2, Store } from "lucide-react";
 
 interface SearchParams { search?: string }
 
@@ -16,6 +16,12 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const sp = await searchParams;
 
   const resellerFilter = scope.resellerId ? { resellerId: scope.resellerId } : {};
+
+  // Fetch reseller names to display on cards (admin only)
+  const resellerUsers = scope.isAdmin
+    ? await prisma.user.findMany({ where: { role: "reseller" }, select: { id: true, name: true, email: true } })
+    : [];
+  const resellerMap = new Map(resellerUsers.map(r => [r.id, r.name ?? r.email]));
 
   const customers = await prisma.customer.findMany({
     where: {
@@ -32,6 +38,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       _count: { select: { devices: true } },
       contacts: { orderBy: { createdAt: "asc" }, take: 1 },
     },
+    // Include resellerId for admin view
     orderBy: { name: "asc" },
   });
 
@@ -97,9 +104,16 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                     )}
                   </div>
                 </div>
-                <span className="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-1 rounded-lg">
-                  {customer._count.devices} device{customer._count.devices !== 1 ? "s" : ""}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="bg-slate-100 text-slate-600 text-xs font-medium px-2 py-1 rounded-lg">
+                    {customer._count.devices} device{customer._count.devices !== 1 ? "s" : ""}
+                  </span>
+                  {scope.isAdmin && customer.resellerId && (
+                    <span className="flex items-center gap-1 text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">
+                      <Store size={9} /> {resellerMap.get(customer.resellerId) ?? "Reseller"}
+                    </span>
+                  )}
+                </div>
               </div>
               {customer.contacts[0]?.email && (
                 <p className="text-sm text-slate-500 mt-3 truncate">{customer.contacts[0].email}</p>
