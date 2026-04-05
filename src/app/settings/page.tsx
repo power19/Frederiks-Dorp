@@ -9,9 +9,11 @@ import { Shield, Building2, Users, Mail, MessageCircle } from "lucide-react";
 
 export default async function SettingsPage() {
   const session = await requireAuth();
-  const isAdmin = session.user.role === "admin";
+  const isAdmin    = session.user.role === "admin";
+  const isReseller = session.user.role === "reseller";
+  const selfId     = (session.user as { id?: string }).id ?? "";
 
-  if (!isAdmin) {
+  if (!isAdmin && !isReseller) {
     return (
       <div className="p-6 max-w-2xl">
         <h2 className="text-xl font-bold text-slate-900 mb-4">Settings</h2>
@@ -22,18 +24,30 @@ export default async function SettingsPage() {
     );
   }
 
+  // Resellers only see their own customers + users
   const [users, customers] = await Promise.all([
-    prisma.user.findMany({
-      select: { id: true, name: true, email: true, role: true, customerId: true, createdAt: true },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.customer.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+    isReseller
+      ? prisma.user.findMany({
+          where: { customer: { resellerId: selfId } },
+          select: { id: true, name: true, email: true, role: true, customerId: true, createdAt: true },
+          orderBy: { createdAt: "asc" },
+        })
+      : prisma.user.findMany({
+          select: { id: true, name: true, email: true, role: true, customerId: true, createdAt: true },
+          orderBy: { createdAt: "asc" },
+        }),
+    isReseller
+      ? prisma.customer.findMany({
+          where: { resellerId: selfId },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        })
+      : prisma.customer.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        }),
   ]);
 
-  const selfId       = (session.user as { id?: string }).id ?? "";
   const globalAdmins = users.filter(u => u.role === "admin");
   const scopedUsers  = users.filter(u => u.role !== "admin");
 
@@ -52,8 +66,8 @@ export default async function SettingsPage() {
         <p className="text-slate-500 text-sm mt-1">User accounts and access control</p>
       </div>
 
-      {/* Global Admins */}
-      <section className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      {/* Global Admins — only visible to super admin */}
+      {isAdmin && <section className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
           <Shield size={15} className="text-blue-600" />
           <h3 className="font-semibold text-slate-800">Global Administrators</h3>
@@ -72,7 +86,7 @@ export default async function SettingsPage() {
             Admins have full access to all customers and settings. Only another global admin can reset an admin&apos;s password.
           </p>
         </div>
-      </section>
+      </section>}
 
       {/* Customer-scoped users — grouped */}
       <section className="space-y-4">
@@ -139,6 +153,8 @@ export default async function SettingsPage() {
         <AddUserForm />
       </section>
 
+      {/* Email, WhatsApp, Danger zone — admin only */}
+      {isAdmin && <>
       {/* Email configuration */}
       <section className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2 bg-slate-50">
@@ -165,6 +181,7 @@ export default async function SettingsPage() {
 
       {/* Danger zone */}
       <WipeDataButton />
+      </>}
     </div>
   );
 }
