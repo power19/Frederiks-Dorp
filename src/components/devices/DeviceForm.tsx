@@ -56,6 +56,7 @@ const deviceTypeLabels: Record<DeviceType, string> = {
   POS: "POS System",
   STARLINK: "Starlink",
   PATCH_PANEL: "Patch Panel",
+  CAMERA: "IP Camera",
 };
 
 export function DeviceForm({ defaultValues, deviceId, devices = [], customers = [], lockedCustomerId = "" }: Props) {
