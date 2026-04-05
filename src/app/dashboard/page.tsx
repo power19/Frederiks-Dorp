@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSessionScope } from "@/lib/sessionScope";
 import { redirect } from "next/navigation";
-import { Server, Wifi, Router, Monitor, Satellite, ArrowRightLeft, Camera } from "lucide-react";
+import { Server, Wifi, Router, Monitor, Satellite, ArrowRightLeft, Camera, HardDrive, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -52,6 +52,9 @@ export default async function DashboardPage() {
     { label: "POS Systems",    key: "POS",          icon: Monitor },
     { label: "Starlink",       key: "STARLINK",     icon: Satellite },
     { label: "IP Cameras",     key: "CAMERA",       icon: Camera },
+    { label: "NVR",            key: "NVR",          icon: HardDrive },
+    { label: "DVR",            key: "DVR",          icon: HardDrive },
+    { label: "Motion Sensors", key: "MOTION_SENSOR", icon: ShieldAlert },
   ];
 
   return (

@@ -33,7 +33,10 @@ const typeColors: Record<DeviceType, string> = {
   POS:          "#ec4899",
   STARLINK:     "#6366f1",
   PATCH_PANEL:  "#0d9488",
-  CAMERA:       "#f43f5e",
+  CAMERA:        "#f43f5e",
+  NVR:           "#dc2626",
+  DVR:           "#ea580c",
+  MOTION_SENSOR: "#ca8a04",
 };
 
 const typeLabels: Record<DeviceType, string> = {
@@ -44,7 +47,10 @@ const typeLabels: Record<DeviceType, string> = {
   POS:          "POS",
   STARLINK:     "Starlink",
   PATCH_PANEL:  "Patch Panel",
-  CAMERA:       "IP Camera",
+  CAMERA:        "IP Camera",
+  NVR:           "NVR",
+  DVR:           "DVR",
+  MOTION_SENSOR: "Motion Sensor",
 };
 
 const statusDot: Record<DeviceStatus, string> = {

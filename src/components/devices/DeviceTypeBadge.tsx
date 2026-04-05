@@ -10,6 +10,9 @@ const config: Record<DeviceType, { label: string; className: string }> = {
   STARLINK: { label: "Starlink", className: "bg-indigo-100 text-indigo-700" },
   PATCH_PANEL: { label: "Patch Panel", className: "bg-teal-100 text-teal-700" },
   CAMERA: { label: "IP Camera", className: "bg-rose-100 text-rose-700" },
+  NVR: { label: "NVR", className: "bg-red-100 text-red-700" },
+  DVR: { label: "DVR", className: "bg-orange-100 text-orange-700" },
+  MOTION_SENSOR: { label: "Motion Sensor", className: "bg-yellow-100 text-yellow-700" },
 };
 
 export function DeviceTypeBadge({ type }: { type: DeviceType }) {

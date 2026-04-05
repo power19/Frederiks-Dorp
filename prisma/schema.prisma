@@ -198,6 +198,9 @@ enum DeviceType {
   STARLINK
   PATCH_PANEL
   CAMERA
+  NVR
+  DVR
+  MOTION_SENSOR
 }
 
 enum DeviceStatus {
